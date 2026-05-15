@@ -12,6 +12,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// ImportCSV godoc
+// @Summary импорт csv
+// @Description Импортировать статистику csv файлом
+// @Tags Импорт
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "CSV File"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Router /import/csv [post]
 func ImportCSV(c *gin.Context) {
 
 	file, err := c.FormFile("file")

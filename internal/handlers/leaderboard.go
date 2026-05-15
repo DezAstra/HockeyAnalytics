@@ -21,6 +21,25 @@ type LeaderboardResponse struct {
 	Value float64 `json:"value"`
 }
 
+// GetLeaderboard godoc
+// @Summary Таблица лидеров
+// @Description Возвращает список лучших игроков по выбранному показателю
+// @Tags Аналитика
+// @Produce json
+//
+// @Param stat path string true "Статистические показатели"
+// @Param season query string false "Сезон"
+// @Param position query string false "Позиция игрока"
+// @Param team query string false "Команда"
+// @Param limit query int false "Количество игроков"
+// @Param min_gp query int false "Минимум сыгранных матчей"
+// @Param order query string false "Сортировка asc/desc"
+//
+// @Success 200 {array} LeaderboardResponse
+//
+// @Failure 400 {object} map[string]interface{}
+//
+// @Router /analytics/leaders/{stat} [get]
 func GetLeaderboard(c *gin.Context) {
 
 	stat := c.Param("stat")

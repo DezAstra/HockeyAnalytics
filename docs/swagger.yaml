@@ -1,0 +1,244 @@
+basePath: /
+definitions:
+  handlers.ComparisonResponse:
+    properties:
+      player1:
+        $ref: '#/definitions/handlers.PlayerComparisonData'
+      player2:
+        $ref: '#/definitions/handlers.PlayerComparisonData'
+    type: object
+  handlers.LeaderboardResponse:
+    properties:
+      player:
+        type: string
+      position:
+        type: string
+      season:
+        type: string
+      team:
+        type: string
+      value:
+        type: number
+    type: object
+  handlers.PlayerAnalyticsResponse:
+    properties:
+      base_score:
+        type: number
+      context_score:
+        type: number
+      normalized_score:
+        type: number
+      overall_percentile:
+        type: number
+      overall_score:
+        type: number
+      player:
+        type: string
+      position:
+        type: string
+      season:
+        type: string
+      team:
+        type: string
+    type: object
+  handlers.PlayerComparisonData:
+    properties:
+      assists:
+        type: integer
+      base_score:
+        type: number
+      blocks:
+        type: integer
+      context_score:
+        type: number
+      goals:
+        type: integer
+      hits:
+        type: integer
+      normalized_score:
+        type: number
+      overall_score:
+        type: number
+      player:
+        type: string
+      points:
+        type: integer
+      position:
+        type: string
+      season:
+        type: string
+      team:
+        type: string
+    type: object
+  handlers.PlayerHistoryResponse:
+    properties:
+      base_score:
+        type: number
+      context_score:
+        type: number
+      normalized_score:
+        type: number
+      overall_score:
+        type: number
+      season:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Аналитика статистических показателей хоккейных игроков
+  title: HockeyAnalytics API
+  version: "1.5"
+paths:
+  /analytics:
+    get:
+      description: Возвращает баллы моделей по статистике игроков
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.PlayerAnalyticsResponse'
+            type: array
+      summary: Проанализировать игроков
+      tags:
+      - Аналитика
+  /analytics/compare:
+    get:
+      description: Сравнивает двух игроков по статистике и аналитическим моделям
+      parameters:
+      - description: ID первого игрока
+        in: query
+        name: player1
+        required: true
+        type: integer
+      - description: ID второго игрока
+        in: query
+        name: player2
+        required: true
+        type: integer
+      - description: Сезон
+        in: query
+        name: season
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.ComparisonResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Сравнение игроков
+      tags:
+      - Аналитика
+  /analytics/leaders/{stat}:
+    get:
+      description: Возвращает список лучших игроков по выбранному показателю
+      parameters:
+      - description: Статистические показатели
+        in: path
+        name: stat
+        required: true
+        type: string
+      - description: Сезон
+        in: query
+        name: season
+        type: string
+      - description: Позиция игрока
+        in: query
+        name: position
+        type: string
+      - description: Команда
+        in: query
+        name: team
+        type: string
+      - description: Количество игроков
+        in: query
+        name: limit
+        type: integer
+      - description: Минимум сыгранных матчей
+        in: query
+        name: min_gp
+        type: integer
+      - description: Сортировка asc/desc
+        in: query
+        name: order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.LeaderboardResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Таблица лидеров
+      tags:
+      - Аналитика
+  /analytics/player/{id}/history:
+    get:
+      description: Возвращает статистику и аналитические оценки игрока по сезонам
+      parameters:
+      - description: ID игрока
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.PlayerHistoryResponse'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: История игрока
+      tags:
+      - Аналитика
+  /import/csv:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Импортировать статистику csv файлом
+      parameters:
+      - description: CSV File
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: импорт csv
+      tags:
+      - Импорт
+swagger: "2.0"

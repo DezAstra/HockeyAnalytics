@@ -1,12 +1,11 @@
 package handlers
 
 import (
+	"net/http"
+
 	"hockeyAnalytics/internal/analytics"
 	"hockeyAnalytics/internal/database"
 	"hockeyAnalytics/internal/models"
-	"net/http"
-	"sort"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,53 +19,37 @@ type PlayerAnalyticsResponse struct {
 	BaseScore       float64 `json:"base_score"`
 	NormalizedScore float64 `json:"normalized_score"`
 	ContextScore    float64 `json:"context_score"`
-	OverallScore    float64 `json:"overall_score"`
+
+	OverallScore float64 `json:"overall_score"`
+
+	OverallPercentile float64 `json:"overall_percentile"`
 }
 
+// GetPlayersAnalytics godoc
+// @Summary Проанализировать игроков
+// @Description Возвращает баллы моделей по статистике игроков
+// @Tags Аналитика
+// @Produce json
+// @Success 200 {array} PlayerAnalyticsResponse
+// @Router /analytics [get]
 func GetPlayersAnalytics(c *gin.Context) {
 
 	var players []models.Player
 
-	season := c.Query("season")
-	position := c.Query("position")
-	team := c.Query("team")
-	sortBy := c.DefaultQuery("sort", "overall")
-	limit := c.DefaultQuery("limit", "50")
+	database.DB.
+		Preload("Team").
+		Preload("Stats").
+		Find(&players)
 
-	query :=
-		database.DB.
-			Preload("Team").
-			Preload("Stats")
+	var tempData []analyticsTemp
 
-	if position != "" {
-		query = query.Where(
-			"position = ?",
-			position,
-		)
-	}
-	if team != "" {
+	var allOverallScores []float64
 
-		query = query.Joins(
-			"JOIN teams ON teams.id = players.team_id",
-		).Where(
-			"teams.name = ?",
-			team,
-		)
-	}
-
-	query.Find(&players)
-
-	var response []PlayerAnalyticsResponse
+	// 1 проход
 
 	for _, player := range players {
 
 		for _, stats := range player.Stats {
-
-			if season != "" &&
-				stats.Season != season {
-
-				continue
-			}
 
 			base :=
 				analytics.BaseStatModel(stats)
@@ -80,71 +63,83 @@ func GetPlayersAnalytics(c *gin.Context) {
 					player.Position,
 				)
 
-			overall := normalized*0.3 + context*0.4
+			overall :=
+				normalized*0.3 +
+					context*0.4
 
-			response = append(
-				response,
-				PlayerAnalyticsResponse{
-					Player:          player.Name,
-					Team:            player.Team.Name,
-					Position:        player.Position,
-					Season:          stats.Season,
-					BaseScore:       base,
-					NormalizedScore: normalized,
-					ContextScore:    context,
-					OverallScore:    overall,
+			tempData = append(
+				tempData,
+				analyticsTemp{
+					Player: player,
+
+					Stats: stats,
+
+					Base: base,
+
+					Normalized: normalized,
+
+					Context: context,
+
+					Overall: overall,
 				},
+			)
+
+			allOverallScores = append(
+				allOverallScores,
+				overall,
 			)
 		}
 	}
 
-	switch sortBy {
+	// 2 проход
 
-	case "base":
+	var response []PlayerAnalyticsResponse
 
-		sort.Slice(response,
-			func(i, j int) bool {
+	for _, item := range tempData {
 
-				return response[i].BaseScore >
-					response[j].BaseScore
-			})
+		percentile :=
+			analytics.CalculatePercentile(
+				item.Overall,
+				allOverallScores,
+			)
 
-	case "normalized":
+		response = append(
+			response,
+			PlayerAnalyticsResponse{
+				Player: item.Player.Name,
 
-		sort.Slice(response,
-			func(i, j int) bool {
+				Team: item.Player.Team.Name,
 
-				return response[i].NormalizedScore >
-					response[j].NormalizedScore
-			})
+				Position: item.Player.Position,
 
-	case "context":
+				Season: item.Stats.Season,
 
-		sort.Slice(response,
-			func(i, j int) bool {
+				BaseScore: item.Base,
 
-				return response[i].ContextScore >
-					response[j].ContextScore
-			})
+				NormalizedScore: item.Normalized,
 
-	default:
+				ContextScore: item.Context,
 
-		sort.Slice(response,
-			func(i, j int) bool {
+				OverallScore: item.Overall,
 
-				return response[i].OverallScore >
-					response[j].OverallScore
-			})
-	}
-
-	parsedLimit, err :=
-		strconv.Atoi(limit)
-
-	if err == nil &&
-		parsedLimit < len(response) {
-
-		response = response[:parsedLimit]
+				OverallPercentile: percentile,
+			},
+		)
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+type analyticsTemp struct {
+	Player models.Player
+
+	Stats models.PlayerSeasonStats
+
+	Base float64
+
+	Normalized float64
+
+	Context float64
+
+	Overall float64
 }
