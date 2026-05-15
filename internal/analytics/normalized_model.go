@@ -2,15 +2,22 @@ package analytics
 
 import "hockeyAnalytics/internal/models"
 
-func NormalizedModel(stats models.PlayerStats) float64 {
+func NormalizedModel(
+	stats models.PlayerSeasonStats,
+) float64 {
 
-	base :=
-		float64(stats.Goals*2) +
-			float64(stats.Assists)
+	base := BaseStatModel(stats)
 
-	if stats.TimeOfIce == nil || *stats.TimeOfIce == 0 {
-		return base
+	if stats.TimeOfIce != nil &&
+		*stats.TimeOfIce > 0 {
+
+		return (base / *stats.TimeOfIce) * 1000
 	}
 
-	return (base / *stats.TimeOfIce) * 1000
+	if stats.GamesPlayed > 0 {
+
+		return (base / float64(stats.GamesPlayed)) * 55
+	}
+
+	return 0
 }

@@ -23,11 +23,15 @@ func ConnectDB() {
 
 	fmt.Println("Database connected")
 
-	database.AutoMigrate(
+	err = database.AutoMigrate(
 		&models.Team{},
 		&models.Player{},
-		&models.PlayerStats{},
+		&models.PlayerSeasonStats{},
 	)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	DB = database
 }

@@ -19,7 +19,7 @@ func ImportCSV(c *gin.Context) {
 	if err != nil {
 
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "file upload error",
+			"error": "ошибка загрузки csv файла",
 		})
 
 		return
@@ -32,7 +32,7 @@ func ImportCSV(c *gin.Context) {
 	if err != nil {
 
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "file save error",
+			"error": "ошибка сохранения csv файла",
 		})
 
 		return
@@ -43,7 +43,7 @@ func ImportCSV(c *gin.Context) {
 	if err != nil {
 
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "file open error",
+			"error": "ошибка открытия csv файла",
 		})
 
 		return
@@ -56,7 +56,7 @@ func ImportCSV(c *gin.Context) {
 	if err != nil {
 
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "csv read error",
+			"error": "ошибка чтения csv файла",
 		})
 
 		return
@@ -67,12 +67,20 @@ func ImportCSV(c *gin.Context) {
 		if index == 0 {
 			continue
 		}
-
+		season := row[30]
 		gamesPlayed, _ := strconv.Atoi(row[5])
 		goals, _ := strconv.Atoi(row[6])
 		assists, _ := strconv.Atoi(row[7])
 		plusMinus, _ := strconv.Atoi(row[9])
 		penaltyMinutes, _ := strconv.Atoi(row[10])
+		evenStrengthGoals, _ := strconv.Atoi(row[12])
+		powerPlayGoals, _ := strconv.Atoi(row[13])
+		shortHandedGoals, _ := strconv.Atoi(row[14])
+		shots, _ := strconv.Atoi(row[19])
+		blockedShots, _ := strconv.Atoi(row[23])
+		hits, _ := strconv.Atoi(row[24])
+		faceoffsWon, _ := strconv.Atoi(row[25])
+		faceoffsLost, _ := strconv.Atoi(row[26])
 
 		var toi *float64
 
@@ -99,29 +107,59 @@ func ImportCSV(c *gin.Context) {
 			database.DB.Create(&team)
 		}
 
-		player := models.Player{
-			Name:     strings.Split(row[1], "\\")[0],
-			Position: row[3],
-			TeamID:   team.ID,
+		playerName := strings.Split(row[1], "\\")[0]
+		position := row[3]
+
+		var player models.Player
+
+		database.DB.
+			Where(
+				"name = ? AND team_id = ?",
+				playerName,
+				team.ID,
+			).
+			First(&player)
+
+		if player.ID == 0 {
+
+			player = models.Player{
+				Name:     playerName,
+				Position: position,
+				TeamID:   team.ID,
+			}
+
+			database.DB.Create(&player)
 		}
 
-		database.DB.Create(&player)
+		stats := models.PlayerSeasonStats{
+			PlayerID:    player.ID,
+			Season:      season,
+			GamesPlayed: gamesPlayed,
 
-		stats := models.PlayerStats{
-			PlayerID: player.ID,
-
-			GamesPlayed:    gamesPlayed,
 			Goals:          goals,
 			Assists:        assists,
 			PlusMinus:      plusMinus,
 			PenaltyMinutes: penaltyMinutes,
-			TimeOfIce:      toi,
+
+			EvenStrengthGoals: evenStrengthGoals,
+			PowerPlayGoals:    powerPlayGoals,
+			ShortHandedGoals:  shortHandedGoals,
+
+			Shots: shots,
+
+			BlockedShots: blockedShots,
+			Hits:         hits,
+
+			FaceoffsWon:  faceoffsWon,
+			FaceoffsLost: faceoffsLost,
+
+			TimeOfIce: toi,
 		}
 
 		database.DB.Create(&stats)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "csv imported",
+		"message": "csv файл импортирован",
 	})
 }

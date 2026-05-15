@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hockey Analytics</title>
+
+    <style>
+
+        body {
+            font-family: Arial;
+            margin: 40px;
+            background: #f4f4f4;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        th {
+            background: #222;
+            color: white;
+        }
+
+    </style>
+</head>
+<body>
+
+<h1>Hockey Analytics Platform</h1>
+
+<table id="playersTable">
+
+    <thead>
+        <tr>
+            <th>Player</th>
+            <th>Team</th>
+            <th>Position</th>
+            <th>season</th>
+
+            <th>Base Score</th>
+            <th>Normalized</th>
+            <th>Context</th>
+        </tr>
+    </thead>
+
+    <tbody></tbody>
+
+</table>
+
+<script>
+
+async function loadAnalytics() {
+
+    const response =
+        await fetch("/analytics")
+
+    const data =
+        await response.json()
+
+    const tableBody =
+        document.querySelector("#playersTable tbody")
+
+    data.forEach(player => {
+
+        const row =
+            document.createElement("tr")
+
+        row.innerHTML = `
+            <td>${player.player}</td>
+            <td>${player.team}</td>
+            <td>${player.position}</td>
+            <td>${player.season}</td>
+
+            <td>${player.base_score.toFixed(2)}</td>
+            <td>${player.normalized_score.toFixed(2)}</td>
+            <td>${player.context_score.toFixed(2)}</td>
+        `
+
+        tableBody.appendChild(row)
+    })
+}
+
+loadAnalytics()
+
+</script>
+
+</body>
+</html>

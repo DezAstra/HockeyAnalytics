@@ -11,5 +11,5 @@ type Player struct {
 	TeamID uint
 	Team   Team
 
-	Stats PlayerStats
+	Stats []PlayerSeasonStats
 }
