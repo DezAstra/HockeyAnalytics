@@ -9,12 +9,14 @@ type PlayerSeasonStats struct {
 	Player   Player
 
 	Season string
+	Team   string
 
 	GamesPlayed int
 
 	Goals     int
 	Assists   int
 	PlusMinus int
+	Points    int
 
 	PenaltyMinutes int
 
@@ -27,8 +29,8 @@ type PlayerSeasonStats struct {
 	BlockedShots int
 	Hits         int
 
-	FaceoffsWon  int
-	FaceoffsLost int
-
-	TimeOfIce *float64
+	FaceoffsWon    int
+	FaceoffsLost   int
+	FaceoffPercent *float64 `gorm:"type:decimal(10,2)"`
+	TimeOfIce      *float64
 }

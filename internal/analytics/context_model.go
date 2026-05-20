@@ -16,13 +16,18 @@ func ContextModel(
 	position = strings.ToUpper(position)
 
 	// универсальные метрики
-	// ассисты (г/п)
+
+	// голы
+
+	score += float64(stats.Goals) * 1.0
+
+	// ассисты
 
 	score += float64(stats.Assists) * 0.8
 
-	// броски в створ ворот
+	// броски
 
-	score += float64(stats.Shots) * 0.10
+	score += float64(stats.Shots) * 0.1
 
 	// коэффициенты усиления голов
 
@@ -31,6 +36,12 @@ func ContextModel(
 	score -= float64(stats.PowerPlayGoals) * 0.1
 
 	score += float64(stats.ShortHandedGoals) * 0.7
+
+	// силовая и блоки
+
+	score += float64(stats.BlockedShots) * 0.05
+
+	score += float64(stats.Hits) * 0.03
 
 	// нарушения
 
@@ -49,13 +60,41 @@ func ContextModel(
 		score += float64(stats.PlusMinus) * 0.25
 	}
 
+	// эффективность бросков
+
+	if stats.Shots > 50 {
+
+		shootingPercent :=
+			(float64(stats.Goals) /
+				float64(stats.Shots)) * 100
+
+		if shootingPercent >= 18 {
+
+			score += 3
+		}
+
+		if shootingPercent >= 14 &&
+			shootingPercent < 18 {
+
+			score += 2
+		}
+
+		if shootingPercent <= 7 {
+
+			score -= 2
+		}
+	}
+
 	// защитники
 
 	if position == "D" {
 
-		score += float64(stats.Goals) * 0.6
+		// голы менее значимы
+
+		score -= float64(stats.Goals) * 0.2
 
 		score += float64(stats.BlockedShots) * 0.5
+
 		score += float64(stats.Hits) * 0.15
 
 		score += float64(stats.Assists) * 0.3
@@ -73,6 +112,8 @@ func ContextModel(
 			stats.FaceoffsWon +
 				stats.FaceoffsLost
 
+		// если есть raw данные
+
 		if totalFaceoffs > 100 {
 
 			faceoffPercent :=
@@ -81,14 +122,10 @@ func ContextModel(
 					stats.FaceoffsLost,
 				)
 
-			// высокий
-
 			if faceoffPercent >= 60 {
 
 				score += 8
 			}
-
-			// хороший
 
 			if faceoffPercent >= 50 &&
 				faceoffPercent < 60 {
@@ -96,27 +133,68 @@ func ContextModel(
 				score += 4
 			}
 
-			// умеренный
-
 			if faceoffPercent < 45 &&
 				faceoffPercent >= 40 {
 
 				score -= 4
 			}
 
-			// низкий
-
 			if faceoffPercent < 40 {
+
+				score -= 8
+			}
+
+			// бонус за объём
+
+			if totalFaceoffs >= 800 {
+
+				score += 2
+			}
+
+			if totalFaceoffs >= 500 &&
+				totalFaceoffs < 800 {
+
+				score += 1
+			}
+
+		} else {
+
+			// fallback для NHL API
+
+			if stats.FaceoffPercent != nil &&
+				*stats.FaceoffPercent >= 60 {
+
+				score += 8
+			}
+
+			if stats.FaceoffPercent != nil &&
+				*stats.FaceoffPercent >= 50 &&
+				*stats.FaceoffPercent < 60 {
+
+				score += 4
+			}
+
+			if stats.FaceoffPercent != nil &&
+				*stats.FaceoffPercent < 45 &&
+				*stats.FaceoffPercent >= 40 {
+
+				score -= 4
+			}
+
+			if stats.FaceoffPercent != nil &&
+				*stats.FaceoffPercent < 40 {
 
 				score -= 8
 			}
 		}
 	}
 
-	// вингеры (крайние напы)
+	// вингеры
 
 	if position == "LW" ||
-		position == "RW" {
+		position == "RW" ||
+		position == "L" ||
+		position == "R" {
 
 		score += float64(stats.Goals) * 1.0
 

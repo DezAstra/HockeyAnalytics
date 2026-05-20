@@ -56,7 +56,6 @@ func GetLeaderboard(c *gin.Context) {
 
 	query :=
 		database.DB.
-			Preload("Team").
 			Preload("Stats")
 
 	// фильтр по позиции
@@ -66,18 +65,6 @@ func GetLeaderboard(c *gin.Context) {
 		query = query.Where(
 			"position = ?",
 			position,
-		)
-	}
-
-	// фильтр по команде
-
-	if team != "" {
-
-		query = query.Joins(
-			"JOIN teams ON teams.id = players.team_id",
-		).Where(
-			"teams.name = ?",
-			team,
 		)
 	}
 
@@ -93,6 +80,11 @@ func GetLeaderboard(c *gin.Context) {
 
 			if season != "" &&
 				stats.Season != season {
+				continue
+			}
+
+			if team != "" &&
+				stats.Team != team {
 				continue
 			}
 
@@ -196,7 +188,7 @@ func GetLeaderboard(c *gin.Context) {
 				response,
 				LeaderboardResponse{
 					Player:   player.Name,
-					Team:     player.Team.Name,
+					Team:     stats.Team,
 					Position: player.Position,
 					Season:   stats.Season,
 					Value:    value,

@@ -6,23 +6,24 @@ import (
 	"hockeyAnalytics/internal/analytics"
 	"hockeyAnalytics/internal/database"
 	"hockeyAnalytics/internal/models"
+	"hockeyAnalytics/internal/services"
 
 	"github.com/gin-gonic/gin"
 )
 
 type PlayerAnalyticsResponse struct {
+	PlayerID uint   `json:"player_id"`
 	Player   string `json:"player"`
 	Team     string `json:"team"`
 	Position string `json:"position"`
 	Season   string `json:"season"`
 
-	BaseScore       float64 `json:"base_score"`
-	NormalizedScore float64 `json:"normalized_score"`
-	ContextScore    float64 `json:"context_score"`
-
-	OverallScore float64 `json:"overall_score"`
-
+	BaseScore         float64 `json:"base_score"`
+	NormalizedScore   float64 `json:"normalized_score"`
+	ContextScore      float64 `json:"context_score"`
+	OverallScore      float64 `json:"overall_score"`
 	OverallPercentile float64 `json:"overall_percentile"`
+	Archetype         string  `json:"archetype"`
 }
 
 // GetPlayersAnalytics godoc
@@ -36,10 +37,41 @@ func GetPlayersAnalytics(c *gin.Context) {
 
 	var players []models.Player
 
-	database.DB.
-		Preload("Team").
-		Preload("Stats").
-		Find(&players)
+	season :=
+		c.Query("season")
+
+	err := services.SyncSeasonIfMissing(
+		season,
+	)
+
+	if err != nil {
+
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{
+				"error": err.Error(),
+			},
+		)
+
+		return
+	}
+
+	query := database.DB
+
+	if season != "" {
+
+		query = query.Preload(
+			"Stats",
+			"season = ?",
+			season,
+		)
+
+	} else {
+
+		query = query.Preload("Stats")
+	}
+
+	query.Find(&players)
 
 	var tempData []analyticsTemp
 
@@ -48,6 +80,10 @@ func GetPlayersAnalytics(c *gin.Context) {
 	// 1 проход
 
 	for _, player := range players {
+
+		if len(player.Stats) == 0 {
+			continue
+		}
 
 		for _, stats := range player.Stats {
 
@@ -103,26 +139,28 @@ func GetPlayersAnalytics(c *gin.Context) {
 				allOverallScores,
 			)
 
+		archetype :=
+			analytics.DetectArchetype(
+				item.Stats,
+				item.Player.Position,
+			)
+
 		response = append(
 			response,
 			PlayerAnalyticsResponse{
-				Player: item.Player.Name,
+				PlayerID: item.Player.ID,
+				Player:   item.Player.Name,
 
-				Team: item.Player.Team.Name,
-
+				Team:     item.Stats.Team,
 				Position: item.Player.Position,
+				Season:   item.Stats.Season,
 
-				Season: item.Stats.Season,
-
-				BaseScore: item.Base,
-
-				NormalizedScore: item.Normalized,
-
-				ContextScore: item.Context,
-
-				OverallScore: item.Overall,
-
+				BaseScore:         item.Base,
+				NormalizedScore:   item.Normalized,
+				ContextScore:      item.Context,
+				OverallScore:      item.Overall,
 				OverallPercentile: percentile,
+				Archetype:         archetype,
 			},
 		)
 	}
@@ -132,14 +170,10 @@ func GetPlayersAnalytics(c *gin.Context) {
 
 type analyticsTemp struct {
 	Player models.Player
+	Stats  models.PlayerSeasonStats
 
-	Stats models.PlayerSeasonStats
-
-	Base float64
-
+	Base       float64
 	Normalized float64
-
-	Context float64
-
-	Overall float64
+	Context    float64
+	Overall    float64
 }

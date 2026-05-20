@@ -60,7 +60,7 @@ func buildComparisonData(
 	return PlayerComparisonData{
 		Player: player.Name,
 
-		Team: player.Team.Name,
+		Team: stats.Team,
 
 		Position: player.Position,
 
@@ -135,12 +135,10 @@ func ComparePlayers(c *gin.Context) {
 	var player2 models.Player
 
 	database.DB.
-		Preload("Team").
 		Preload("Stats").
 		First(&player1, player1ID)
 
 	database.DB.
-		Preload("Team").
 		Preload("Stats").
 		First(&player2, player2ID)
 

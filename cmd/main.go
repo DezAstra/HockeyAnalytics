@@ -23,16 +23,39 @@ func main() {
 
 	router := gin.Default()
 
-	router.LoadHTMLGlob("web/templates/*")
+	router.Static("/static", "./static")
 
-	router.GET("/", handlers.HomePage)
+	router.GET("/", func(c *gin.Context) {
+		c.File("./static/index.html")
+	})
+
+	router.GET("/player", func(c *gin.Context) {
+		c.File("./static/player.html")
+	})
+
+	router.GET("/comparison", func(c *gin.Context) {
+		c.File("./static/compare.html")
+	})
+
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	router.POST("/import/csv", handlers.ImportCSV)
+	router.POST("/nhl/sync", handlers.SyncNHLSeason)
+
+	router.GET("/nhl/stats", handlers.GetNHLSeasonStats)
+
 	router.GET("/analytics", handlers.GetPlayersAnalytics)
 	router.GET("/analytics/leaders/:stat", handlers.GetLeaderboard)
-	router.GET("/players", handlers.GetPlayers)
 	router.GET("/analytics/player/:id/history", handlers.GetPlayerHistory)
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	router.GET("/analytics/compare", handlers.ComparePlayers)
+
+	router.GET("/players", handlers.GetPlayers)
+	router.GET("/players/:id/career", handlers.GetPlayerCareer)
+
+	router.GET(
+		"/seasons",
+		handlers.GetSeasons,
+	)
 
 	router.Run(":8080")
 }

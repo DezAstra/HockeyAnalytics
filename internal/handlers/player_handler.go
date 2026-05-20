@@ -13,10 +13,7 @@ func GetPlayers(c *gin.Context) {
 
 	var players []models.Player
 
-	database.DB.
-		Preload("Team").
-		Preload("Stats").
-		Find(&players)
+	database.DB.Preload("Stats").Find(&players)
 
 	c.JSON(http.StatusOK, players)
 }

@@ -2,12 +2,11 @@ package handlers
 
 import (
 	"hockeyAnalytics/internal/database"
+	"hockeyAnalytics/internal/mappers"
 	"hockeyAnalytics/internal/models"
 	"hockeyAnalytics/internal/services"
 	"net/http"
 	"os"
-	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -77,48 +76,15 @@ func ImportCSV(c *gin.Context) {
 		if index == 0 {
 			continue
 		}
-		season := row[30]
-		gamesPlayed, _ := strconv.Atoi(row[5])
-		goals, _ := strconv.Atoi(row[6])
-		assists, _ := strconv.Atoi(row[7])
-		plusMinus, _ := strconv.Atoi(row[9])
-		penaltyMinutes, _ := strconv.Atoi(row[10])
-		evenStrengthGoals, _ := strconv.Atoi(row[12])
-		powerPlayGoals, _ := strconv.Atoi(row[13])
-		shortHandedGoals, _ := strconv.Atoi(row[14])
-		shots, _ := strconv.Atoi(row[19])
-		blockedShots, _ := strconv.Atoi(row[23])
-		hits, _ := strconv.Atoi(row[24])
-		faceoffsWon, _ := strconv.Atoi(row[25])
-		faceoffsLost, _ := strconv.Atoi(row[26])
 
-		var toi *float64
+		teamName :=
+			mappers.ExtractTeamName(row)
 
-		if row[21] != "" {
+		playerName :=
+			mappers.ExtractPlayerName(row)
 
-			value, _ := strconv.ParseFloat(row[21], 64)
-			toi = &value
-		}
-
-		teamName := row[4]
-
-		var team models.Team
-
-		database.DB.
-			Where("name = ?", teamName).
-			First(&team)
-
-		if team.ID == 0 {
-
-			team = models.Team{
-				Name: teamName,
-			}
-
-			database.DB.Create(&team)
-		}
-
-		playerName := strings.Split(row[1], "\\")[0]
-		position := row[3]
+		position :=
+			mappers.ExtractPlayerPosition(row)
 
 		var player models.Player
 
@@ -126,7 +92,6 @@ func ImportCSV(c *gin.Context) {
 			Where(
 				"name = ? AND team_id = ?",
 				playerName,
-				team.ID,
 			).
 			First(&player)
 
@@ -135,36 +100,18 @@ func ImportCSV(c *gin.Context) {
 			player = models.Player{
 				Name:     playerName,
 				Position: position,
-				TeamID:   team.ID,
 			}
 
 			database.DB.Create(&player)
 		}
 
-		stats := models.PlayerSeasonStats{
-			PlayerID:    player.ID,
-			Season:      season,
-			GamesPlayed: gamesPlayed,
+		stats :=
+			mappers.MapCSVRowToStats(
+				row,
+				player.ID,
+			)
 
-			Goals:          goals,
-			Assists:        assists,
-			PlusMinus:      plusMinus,
-			PenaltyMinutes: penaltyMinutes,
-
-			EvenStrengthGoals: evenStrengthGoals,
-			PowerPlayGoals:    powerPlayGoals,
-			ShortHandedGoals:  shortHandedGoals,
-
-			Shots: shots,
-
-			BlockedShots: blockedShots,
-			Hits:         hits,
-
-			FaceoffsWon:  faceoffsWon,
-			FaceoffsLost: faceoffsLost,
-
-			TimeOfIce: toi,
-		}
+		stats.Team = teamName
 
 		database.DB.Create(&stats)
 	}
