@@ -2,6 +2,7 @@ package analytics
 
 import (
 	"hockeyAnalytics/internal/models"
+	"math"
 	"strings"
 )
 
@@ -19,51 +20,46 @@ func DetectArchetype(
 		stats.Shots >= 220 &&
 		stats.Goals > stats.Assists {
 
-		return "Sniper"
+		return "Снайпер"
+	}
+
+	// playmaker
+
+	if stats.Assists+stats.Goals >= 50 &&
+		math.Abs(float64(stats.Assists-stats.Goals)) <= 20 {
+
+		return "Бомбардир"
 	}
 
 	// playmaker
 
 	if stats.Assists >= 50 &&
-		stats.Assists > stats.Goals {
+		stats.Assists-stats.Goals >= 30 {
 
-		return "Playmaker"
-	}
-
-	// two-way forward
-
-	if (position == "C" ||
-		position == "LW" ||
-		position == "RW") &&
-		stats.PlusMinus >= 15 &&
-		stats.FaceoffPercent != nil &&
-		*stats.FaceoffPercent >= 52 {
-
-		return "Two-Way Forward"
+		return "Ассистент"
 	}
 
 	// offensive defenseman
 
 	if position == "D" &&
-		stats.Assists >= 40 {
+		stats.Assists+stats.Goals >= 40 {
 
-		return "Offensive Defenseman"
+		return "Атакующий защитник"
 	}
 
-	// defensive defenseman
+	// iron defenseman
 
 	if position == "D" &&
 		stats.BlockedShots >= 120 {
 
-		return "Defensive Defenseman"
+		return "Защитник-стена"
 	}
 
 	// enforcer
 
-	if stats.Hits >= 180 &&
-		stats.PenaltyMinutes >= 70 {
+	if stats.PenaltyMinutes >= 60 {
 
-		return "Enforcer"
+		return "Нарушитель"
 	}
 
 	// grinder
@@ -71,7 +67,7 @@ func DetectArchetype(
 	if stats.Hits >= 120 &&
 		stats.Goals < 20 {
 
-		return "Grinder"
+		return "Силовик"
 	}
 
 	// faceoff specialist
@@ -80,8 +76,8 @@ func DetectArchetype(
 		stats.FaceoffPercent != nil &&
 		*stats.FaceoffPercent >= 57 {
 
-		return "Faceoff Specialist"
+		return "Специалист по вбрасываниям"
 	}
 
-	return "Balanced"
+	return "Баланс"
 }

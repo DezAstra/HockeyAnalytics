@@ -1,5 +1,11 @@
 const API = 'http://localhost:8080'
 
+let allPlayers = []
+
+let currentSort = null
+
+let sortDirection = 'desc'
+
 const table =
     document.getElementById(
         'playersTable'
@@ -15,12 +21,6 @@ const searchInput =
         'searchInput'
     )
 
-const sortSelect =
-    document.getElementById(
-        'sortSelect'
-    )
-
-let allPlayers = []
 function getScoreClass(score) {
 
     if (score >= 85) {
@@ -57,70 +57,12 @@ async function loadAnalytics() {
 
     allPlayers = data
 
-    applyFilters()
+    populateTeamFilter(data)
+
+    renderPlayers(data)
 }
 
-function applyFilters() {
 
-    let players =
-        [...allPlayers]
-
-    const search =
-        searchInput.value
-            .toLowerCase()
-
-    if (search) {
-
-        players =
-            players.filter(
-                player =>
-                    player.player
-                        .toLowerCase()
-                        .includes(search)
-            )
-    }
-
-    const sort =
-        sortSelect.value
-
-    if (sort === 'overall') {
-
-        players.sort(
-            (a, b) =>
-                b.overall_score -
-                a.overall_score
-        )
-    }
-
-    if (sort === 'normalized') {
-
-        players.sort(
-            (a, b) =>
-                b.normalized_score -
-                a.normalized_score
-        )
-    }
-
-    if (sort === 'context') {
-
-        players.sort(
-            (a, b) =>
-                b.context_score -
-                a.context_score
-        )
-    }
-
-    if (sort === 'percentile') {
-
-        players.sort(
-            (a, b) =>
-                b.overall_percentile -
-                a.overall_percentile
-        )
-    }
-
-    renderPlayers(players)
-}
 
 function renderPlayers(players) {
 
@@ -139,7 +81,9 @@ function renderPlayers(players) {
             </td>
 
             <td>
-                ${player.team}
+                    <a href="/team/${player.team}">
+                        ${player.team}
+                    </a>
             </td>
 
             <td>
@@ -169,13 +113,188 @@ function renderPlayers(players) {
             </td>
 
             <td>
-                <span class="badge">
+                <span class="badge ${getArchetypeClass(player.archetype)}">
                     ${player.archetype}
                 </span>
             </td>
         `
 
         table.appendChild(row)
+    })
+}
+
+function applyFilters() {
+
+    let filtered =
+        [...allPlayers]
+
+    const search =
+        document
+            .getElementById(
+                'searchInput'
+            )
+            .value
+            .toLowerCase()
+
+    const position =
+        document
+            .getElementById(
+                'positionFilter'
+            )
+            .value
+
+    const team =
+        document
+            .getElementById(
+                'teamFilter'
+            )
+            .value
+
+    const archetype =
+        document
+            .getElementById(
+                'archetypeFilter'
+            )
+            .value
+
+    if (search) {
+
+        filtered =
+            filtered.filter(
+                p =>
+                    p.player
+                        .toLowerCase()
+                        .includes(search)
+            )
+    }
+
+    if (position) {
+
+        filtered =
+            filtered.filter(
+                p =>
+                    p.position ===
+                    position
+            )
+    }
+
+    if (team) {
+
+        filtered =
+            filtered.filter(
+                p =>
+                    p.team ===
+                    team
+            )
+    }
+
+    if (archetype) {
+
+        filtered =
+            filtered.filter(
+                p =>
+                    p.archetype ===
+                    archetype
+            )
+    }
+
+    if (currentSort) {
+
+        filtered.sort(
+            (a, b) => {
+
+                const aVal =
+                    a[currentSort]
+
+                const bVal =
+                    b[currentSort]
+
+                if (
+                    sortDirection ===
+                    'asc'
+                ) {
+
+                    return aVal - bVal
+                }
+
+                return bVal - aVal
+            }
+        )
+    }
+
+    renderPlayers(filtered)
+}
+
+function getArchetypeClass(archetype) {
+
+    switch (archetype) {
+
+        case 'Ассистент':
+            return 'badge-assistman'
+
+        case 'Снайпер':
+            return 'badge-sniper'
+
+        case 'Бомбардир':
+            return 'badge-pointer'
+
+        case 'Защитник-стена':
+            return 'badge-iron-defenseman'
+
+        case 'Атакующий защитник':
+            return 'badge-offensive-defenseman'
+
+        case 'Нарушитель':
+            return 'badge-offender'
+
+        case 'Силовик':
+            return 'badge-grinder'
+
+        case 'Специалист по вбрасываниям':
+            return 'badge-faceoff-specialist'
+
+        default:
+            return ''
+    }
+}
+
+function populateTeamFilter(data) {
+
+    const select =
+        document.getElementById(
+            'teamFilter'
+        )
+
+    select.innerHTML =
+        `
+        <option value="">
+            Все команды
+        </option>
+        `
+
+    const teams =
+        [...new Set(
+            data.map(
+                p => p.team
+            )
+        )]
+
+    teams.sort()
+
+    teams.forEach(team => {
+
+        const option =
+            document.createElement(
+                'option'
+            )
+
+        option.value =
+            team
+
+        option.textContent =
+            team
+
+        select.appendChild(option)
     })
 }
 
@@ -189,9 +308,77 @@ searchInput.addEventListener(
     applyFilters,
 )
 
-sortSelect.addEventListener(
-    'change',
-    applyFilters,
-)
+document
+    .getElementById(
+        'searchInput'
+    )
+    .addEventListener(
+        'input',
+        applyFilters
+    )
+
+document
+    .getElementById(
+        'positionFilter'
+    )
+    .addEventListener(
+        'change',
+        applyFilters
+    )
+
+document
+    .getElementById(
+        'teamFilter'
+    )
+    .addEventListener(
+        'change',
+        applyFilters
+    )
+
+document
+    .getElementById(
+        'archetypeFilter'
+    )
+    .addEventListener(
+        'change',
+        applyFilters
+    )
+
+document
+    .querySelectorAll(
+        'th[data-sort]'
+    )
+    .forEach(th => {
+
+        th.addEventListener(
+            'click',
+            () => {
+
+                const field =
+                    th.dataset.sort
+
+                if (
+                    currentSort === field
+                ) {
+
+                    sortDirection =
+                        sortDirection ===
+                        'asc'
+                            ? 'desc'
+                            : 'asc'
+
+                } else {
+
+                    currentSort =
+                        field
+
+                    sortDirection =
+                        'desc'
+                }
+
+                applyFilters()
+            }
+        )
+    })
 
 loadAnalytics()

@@ -6,7 +6,7 @@ body {
 }
 
 .container {
-    width: 90%;
+    width: 80%;
     margin: auto;
     padding-top: 40px;
 }
@@ -36,10 +36,10 @@ select {
 
 table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
     background: #111827;
     border-radius: 20px;
-    overflow: hidden;
+    border-spacing: 0;
 }
 
 th {
@@ -205,11 +205,231 @@ input {
     border-radius: 8px;
 }
 
-.radar-wrapper {
+.table-wrapper {
 
-    width: 500px;
+    height: 700px;
+    overflow-y: scroll;
+    border-radius: 20px;
+    border: 1px solid #334155;
+}
 
-    height: 500px;
+.similar-grid {
 
-    margin: 0 auto;
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(220px, 1fr)
+        );
+
+    gap: 16px;
+}
+
+.similar-card {
+
+    background: #0f172a;
+
+    border-radius: 12px;
+
+    padding: 18px;
+
+    text-decoration: none;
+
+    color: white;
+
+    transition: 0.2s;
+}
+
+.similar-card:hover {
+
+    transform: translateY(-4px);
+
+    background: #172554;
+}
+
+.similarity-score {
+
+    margin-top: 12px;
+
+    color: #22c55e;
+
+    font-weight: bold;
+}
+
+thead th {
+
+    position: sticky;
+
+    top: 0;
+
+    z-index: 100;
+
+    background: #1e293b;
+
+    border-bottom:
+        1px solid #334155;
+}
+
+thead {
+
+    background: #0f172a;
+}
+
+.table-wrapper {
+
+    max-height: 80vh;
+
+    overflow-y: auto;
+
+    border-radius: 20px;
+}
+
+.filters {
+
+    display: flex;
+
+    gap: 12px;
+
+    margin-bottom: 20px;
+
+    flex-wrap: wrap;
+}
+
+.filters input,
+.filters select {
+
+    background: #0f172a;
+
+    color: white;
+
+    border: 1px solid #334155;
+
+    padding: 10px 14px;
+
+    border-radius: 10px;
+}
+
+.badge-assistman {
+
+    background: rgba(143, 246, 59, 0.2);
+
+    color: #b7fa60;
+}
+
+.badge-sniper {
+
+    background: rgba(239,68,68,0.2);
+
+    color: #f87171;
+}
+
+.badge-pointer {
+
+    background: rgba(16,185,129,0.2);
+
+    color: #34d399;
+}
+
+.badge-iron-defenseman {
+
+    background: rgba(148,163,184,0.2);
+
+    color: #cbd5e1;
+}
+
+.badge-offensive-defenseman {
+
+    background: rgba(168,85,247,0.2);
+
+    color: #c084fc;
+}
+
+.badge-offender {
+
+    background: rgba(249,115,22,0.2);
+
+    color: #fb923c;
+}
+
+.badge-grinder {
+
+    background: rgba(234,179,8,0.2);
+
+    color: #fde047;
+}
+
+.badge-faceoff-specialist {
+
+    background: rgba(14,165,233,0.2);
+
+    color: #38bdf8;
+}
+
+.compare-search {
+
+    position: relative;
+
+    width: 400px;
+}
+
+#compareResults {
+
+    position: absolute;
+
+    top: 52px;
+
+    left: 0;
+
+    width: 100%;
+
+    background: #0f172a;
+
+    border: 1px solid #334155;
+
+    border-radius: 12px;
+
+    overflow: hidden;
+
+    z-index: 9999;
+}
+
+.compare-result {
+
+    padding: 14px;
+
+    cursor: pointer;
+
+    border-bottom: 1px solid #1e293b;
+
+    transition: 0.15s;
+}
+
+.compare-result:hover {
+
+    background: #172554;
+}
+
+.back-button {
+
+    background: #0f172a;
+
+    color: white;
+
+    border: 1px solid #334155;
+
+    padding: 10px 18px;
+
+    border-radius: 12px;
+
+    cursor: pointer;
+
+    margin-bottom: 24px;
+
+    transition: 0.2s;
+}
+
+.back-button:hover {
+
+    background: #172554;
 }

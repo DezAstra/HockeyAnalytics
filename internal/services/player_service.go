@@ -44,7 +44,7 @@ func UpsertPlayer(
 	err :=
 		database.DB.
 			Where(
-				"name = ?",
+				"LOWER(name) = LOWER(?)",
 				player.Name,
 			).
 			First(&existing).Error

@@ -90,7 +90,7 @@ func ImportCSV(c *gin.Context) {
 
 		database.DB.
 			Where(
-				"name = ? AND team_id = ?",
+				"LOWER(name) = LOWER(?)",
 				playerName,
 			).
 			First(&player)
@@ -113,7 +113,7 @@ func ImportCSV(c *gin.Context) {
 
 		stats.Team = teamName
 
-		database.DB.Create(&stats)
+		services.SaveSeasonStats(stats)
 	}
 
 	c.JSON(http.StatusOK, gin.H{

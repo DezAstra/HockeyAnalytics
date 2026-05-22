@@ -376,7 +376,8 @@ function renderRadar(data) {
                 }
             }
         })
-    }
+}
+
 
 async function init() {
 

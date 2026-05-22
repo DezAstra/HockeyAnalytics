@@ -51,10 +51,30 @@ func main() {
 
 	router.GET("/players", handlers.GetPlayers)
 	router.GET("/players/:id/career", handlers.GetPlayerCareer)
+	router.GET("/players/:id/similar", handlers.GetSimilarPlayers)
 
 	router.GET(
 		"/seasons",
 		handlers.GetSeasons,
+	)
+
+	router.GET(
+		"/compare",
+		func(c *gin.Context) {
+			c.File("./static/comparison.html")
+		},
+	)
+
+	router.GET(
+		"/team/:team",
+		func(c *gin.Context) {
+			c.File("./static/team.html")
+		},
+	)
+
+	router.GET(
+		"/api/team/:team",
+		handlers.GetTeam,
 	)
 
 	router.Run(":8080")

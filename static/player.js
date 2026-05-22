@@ -9,7 +9,6 @@ const params =
 const playerId =
     params.get('id')
 
-console.log("LOAD START")
 async function loadPlayer() {
 
     const response =
@@ -20,18 +19,9 @@ async function loadPlayer() {
     const data =
         await response.json()
 
-    console.log("RENDER")
-    console.log(data)
-    console.log("CHART")
-    console.log(data.career)
-
-    console.log(
-        data.career[
-            data.career.length - 1
-        ]
-    )
-    
     renderPlayer(data)
+
+    await loadSimilarPlayers()
     console.log(
         data.career[
             data.career.length - 1
@@ -40,6 +30,64 @@ async function loadPlayer() {
     renderChart(data.career)
 }
 
+async function loadSimilarPlayers() {
+
+    const response =
+        await fetch(
+            `${API}/players/${playerId}/similar`
+        )
+
+    const data =
+        await response.json()
+
+    renderSimilarPlayers(data)
+}
+
+function renderSimilarPlayers(players) {
+
+    document.getElementById(
+        'similarPlayers'
+    ).innerHTML = `
+
+        <h2>
+            Similar Players
+        </h2>
+
+        <div class="similar-grid">
+
+            ${players.map(player => `
+
+                <a
+                    href="/player?id=${player.player_id}"
+                    class="similar-card"
+                >
+
+                    <h3>
+                        ${player.player}
+                    </h3>
+
+                    <p>
+                        ${player.team}
+                    </p>
+
+                    <p>
+                        ${player.archetype}
+                    </p>
+
+                    <div class="similarity-score">
+
+                        ${player.similarity.toFixed(1)}%
+                        similar
+
+                    </div>
+
+                </a>
+
+            `).join('')}
+
+        </div>
+    `
+}
 
 function renderPlayer(data) {
 
@@ -51,6 +99,7 @@ function renderPlayer(data) {
     document.getElementById(
         'playerCard'
     ).innerHTML = `
+
         <h1 style="
             font-size:42px;
             margin-bottom:10px;
@@ -72,6 +121,7 @@ function renderPlayer(data) {
         <div class="stat-grid">
 
             <div class="stat-box">
+
                 <div class="stat-title">
                     Goals
                 </div>
@@ -79,9 +129,11 @@ function renderPlayer(data) {
                 <div class="stat-value">
                     ${latest.goals}
                 </div>
+
             </div>
 
             <div class="stat-box">
+
                 <div class="stat-title">
                     Assists
                 </div>
@@ -89,9 +141,11 @@ function renderPlayer(data) {
                 <div class="stat-value">
                     ${latest.assists}
                 </div>
+
             </div>
 
             <div class="stat-box">
+
                 <div class="stat-title">
                     Overall
                 </div>
@@ -99,18 +153,20 @@ function renderPlayer(data) {
                 <div class="stat-value">
                     ${latest.overall_score.toFixed(1)}
                 </div>
+
             </div>
 
             <div class="stat-box">
-                <div class="stat-box">
-                    <div class="stat-title">
-                        Games
-                    </div>
 
-                    <div class="stat-value">
-                        ${latest.games_played}
-                    </div>
+                <div class="stat-title">
+                    Games
                 </div>
+
+                <div class="stat-value">
+                    ${latest.games_played}
+                </div>
+
+            </div>
 
         </div>
     `
@@ -152,4 +208,105 @@ function renderChart(career) {
     })
 }
 
-loadPlayer()
+async function searchPlayers(query) {
+
+    const response =
+        await fetch(
+            `${API}/analytics?season=25/26`
+        )
+
+    const players =
+        await response.json()
+
+    return players.filter(player => {
+
+        if (
+            player.player_id ==
+            playerId
+        ) {
+            return false
+        }
+
+        return player.player
+            .toLowerCase()
+            .includes(
+                query.toLowerCase()
+            )
+    })
+}
+
+document
+    .getElementById(
+        'compareInput'
+    )
+    .addEventListener(
+        'input',
+        async e => {
+
+            const query =
+                e.target.value
+
+            const results =
+                document.getElementById(
+                    'compareResults'
+                )
+
+            if (
+                query.length < 2
+            ) {
+
+                results.innerHTML = ''
+
+                return
+            }
+
+            const players =
+                await searchPlayers(
+                    query
+                )
+
+            results.innerHTML =
+                players
+                    .slice(0, 8)
+                    .map(player => `
+
+                        <div
+                            class="compare-result"
+                            data-id="${player.player_id}"
+                        >
+
+                            ${player.player}
+                            (${player.team})
+
+                        </div>
+
+                    `)
+                    .join('')
+
+            document
+                .querySelectorAll(
+                    '.compare-result'
+                )
+                .forEach(card => {
+
+                    card.addEventListener(
+                        'click',
+                        () => {
+
+                            const target =
+                                card.dataset.id
+
+                            window.location.href =
+                                `/comparison?player1=${playerId}&player2=${target}`
+                        }
+                    )
+                })
+        }
+    )
+
+async function init() {
+
+    await loadPlayer()
+}
+
+init()

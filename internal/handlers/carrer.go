@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"sort"
 
 	"hockeyAnalytics/internal/analytics"
 	"hockeyAnalytics/internal/database"
@@ -95,6 +96,19 @@ func GetPlayerCareer(c *gin.Context) {
 			},
 		)
 	}
+
+	sort.Slice(
+		seasons,
+		func(i, j int) bool {
+
+			return seasonValue(
+				seasons[i].Season,
+			) <
+				seasonValue(
+					seasons[j].Season,
+				)
+		},
+	)
 
 	c.JSON(
 		http.StatusOK,

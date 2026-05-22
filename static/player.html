@@ -12,15 +12,47 @@
 <body>
 
 <div class="container">
+    
+    <button
+        class="back-button"
+        onclick="history.back()"
+    >
+        ← Back
+    </button>
 
     <div
         id="playerCard"
         class="card"
     ></div>
 
+    <div
+        id="similarPlayers"
+        class="card"
+    ></div>
+
     <div class="card">
 
         <canvas id="careerChart"></canvas>
+
+    </div>
+
+    <div class="card">
+
+        <h2>
+            Compare Player
+        </h2>
+
+        <div class="compare-search">
+
+            <input
+                type="text"
+                id="compareInput"
+                placeholder="Compare with player..."
+            >
+
+            <div id="compareResults"></div>
+
+        </div>
 
     </div>
 

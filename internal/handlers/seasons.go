@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
+	"strings"
 
 	"hockeyAnalytics/internal/database"
 
@@ -21,4 +23,26 @@ func GetSeasons(c *gin.Context) {
 		http.StatusOK,
 		seasons,
 	)
+}
+
+func seasonValue(
+	season string,
+) int {
+
+	parts :=
+		strings.Split(
+			season,
+			"/",
+		)
+
+	if len(parts) != 2 {
+		return 0
+	}
+
+	year, _ :=
+		strconv.Atoi(
+			parts[0],
+		)
+
+	return year
 }
