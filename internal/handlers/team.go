@@ -81,9 +81,12 @@ func GetTeam(c *gin.Context) {
 				s.Player.Position,
 			)
 
-		overall :=
-			normalized*0.3 +
-				context*0.4
+		overall := analytics.CalculateOverallScore(
+			normalized,
+			analytics.CalculateDistribution([]float64{normalized}),
+			context,
+			analytics.CalculateDistribution([]float64{context}),
+		)
 
 		archetype :=
 			analytics.DetectArchetype(

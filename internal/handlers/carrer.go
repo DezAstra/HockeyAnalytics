@@ -67,12 +67,12 @@ func GetPlayerCareer(c *gin.Context) {
 
 	for _, stats := range player.Stats {
 
-		overall :=
-			analytics.NormalizedModel(stats)*0.3 +
-				analytics.ContextModel(
-					stats,
-					player.Position,
-				)*0.4
+		overall := analytics.CalculateOverallScore(
+			analytics.NormalizedModel(stats),
+			analytics.CalculateDistribution([]float64{analytics.NormalizedModel(stats)}),
+			analytics.ContextModel(stats, player.Position),
+			analytics.CalculateDistribution([]float64{analytics.ContextModel(stats, player.Position)}),
+		)
 
 		archetype :=
 			analytics.DetectArchetype(

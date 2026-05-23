@@ -1,13 +1,5 @@
 package analytics
 
-func CalculatePoints(
-	goals int,
-	assists int,
-) int {
-
-	return goals + assists
-}
-
 func CalculateShootingPercent(
 	goals int,
 	shots int,

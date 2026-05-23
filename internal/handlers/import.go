@@ -7,8 +7,15 @@ import (
 	"hockeyAnalytics/internal/services"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+)
+
+const (
+	csvPlayerIdx   = 1
+	csvPositionIdx = 3
+	csvTeamIdx     = 4
 )
 
 // ImportCSV godoc
@@ -77,14 +84,13 @@ func ImportCSV(c *gin.Context) {
 			continue
 		}
 
-		teamName :=
-			mappers.ExtractTeamName(row)
+		if len(row) <= csvTeamIdx {
+			continue
+		}
 
-		playerName :=
-			mappers.ExtractPlayerName(row)
-
-		position :=
-			mappers.ExtractPlayerPosition(row)
+		teamName := row[csvTeamIdx]
+		playerName := strings.Split(row[csvPlayerIdx], "\\")[0]
+		position := row[csvPositionIdx]
 
 		var player models.Player
 

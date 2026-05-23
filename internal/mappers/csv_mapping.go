@@ -2,35 +2,34 @@ package mappers
 
 import (
 	"strconv"
-	"strings"
 
 	"hockeyAnalytics/internal/models"
 	"hockeyAnalytics/internal/utils"
 )
 
-func ExtractTeamName(
-	row []string,
-) string {
+// func ExtractTeamName(
+// 	row []string,
+// ) string {
 
-	return row[4]
-}
+// 	return row[4]
+// }
 
-func ExtractPlayerName(
-	row []string,
-) string {
+// func ExtractPlayerName(
+// 	row []string,
+// ) string {
 
-	return strings.Split(
-		row[1],
-		"\\",
-	)[0]
-}
+// 	return strings.Split(
+// 		row[1],
+// 		"\\",
+// 	)[0]
+// }
 
-func ExtractPlayerPosition(
-	row []string,
-) string {
+// func ExtractPlayerPosition(
+// 	row []string,
+// ) string {
 
-	return row[3]
-}
+// 	return row[3]
+// }
 
 func MapCSVRowToStats(
 	row []string,

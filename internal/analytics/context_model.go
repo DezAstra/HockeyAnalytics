@@ -68,21 +68,7 @@ func ContextModel(
 			(float64(stats.Goals) /
 				float64(stats.Shots)) * 100
 
-		if shootingPercent >= 18 {
-
-			score += 3
-		}
-
-		if shootingPercent >= 14 &&
-			shootingPercent < 18 {
-
-			score += 2
-		}
-
-		if shootingPercent <= 7 {
-
-			score -= 2
-		}
+		score += (shootingPercent - 10) * 0.3
 	}
 
 	// защитники
@@ -122,37 +108,16 @@ func ContextModel(
 					stats.FaceoffsLost,
 				)
 
-			if faceoffPercent >= 60 {
-
-				score += 8
-			}
-
-			if faceoffPercent >= 50 &&
-				faceoffPercent < 60 {
-
-				score += 4
-			}
-
-			if faceoffPercent < 45 &&
-				faceoffPercent >= 40 {
-
-				score -= 4
-			}
-
-			if faceoffPercent < 40 {
-
-				score -= 8
-			}
+			score += (faceoffPercent - 50) * 0.4
 
 			// бонус за объём
 
-			if totalFaceoffs >= 800 {
+			if totalFaceoffs >= 800 && faceoffPercent >= 55 {
 
 				score += 2
 			}
 
-			if totalFaceoffs >= 500 &&
-				totalFaceoffs < 800 {
+			if totalFaceoffs >= 500 && totalFaceoffs < 800 && faceoffPercent >= 55 {
 
 				score += 1
 			}
@@ -160,31 +125,8 @@ func ContextModel(
 		} else {
 
 			// fallback для NHL API
-
-			if stats.FaceoffPercent != nil &&
-				*stats.FaceoffPercent >= 60 {
-
-				score += 8
-			}
-
-			if stats.FaceoffPercent != nil &&
-				*stats.FaceoffPercent >= 50 &&
-				*stats.FaceoffPercent < 60 {
-
-				score += 4
-			}
-
-			if stats.FaceoffPercent != nil &&
-				*stats.FaceoffPercent < 45 &&
-				*stats.FaceoffPercent >= 40 {
-
-				score -= 4
-			}
-
-			if stats.FaceoffPercent != nil &&
-				*stats.FaceoffPercent < 40 {
-
-				score -= 8
+			if stats.FaceoffPercent != nil {
+				score += (*stats.FaceoffPercent - 50) * 0.4
 			}
 		}
 	}
