@@ -5,7 +5,6 @@ import (
 	"sort"
 	"strconv"
 
-	"hockeyAnalytics/internal/analytics"
 	"hockeyAnalytics/internal/database"
 	"hockeyAnalytics/internal/models"
 
@@ -79,38 +78,33 @@ func GetPlayerHistory(c *gin.Context) {
 	var response []PlayerHistoryResponse
 
 	for _, stats := range player.Stats {
-
-		base :=
-			analytics.BaseStatModel(stats)
-
-		normalized :=
-			analytics.NormalizedModel(stats)
-
-		context :=
-			analytics.ContextModel(
-				stats,
-				player.Position,
+		seasonAnalytics, err :=
+			analyticsEngine.GetSeasonAnalytics(
+				c.Request.Context(),
+				stats.Season,
 			)
 
-		overall := analytics.CalculateOverallScore(
-			normalized,
-			analytics.CalculateDistribution([]float64{normalized}),
-			context,
-			analytics.CalculateDistribution([]float64{context}),
-		)
+		if err != nil {
+			continue
+		}
+
+		analyticsResult, ok := seasonAnalytics[player.ID]
+		if !ok {
+			continue
+		}
 
 		response = append(
 			response,
 			PlayerHistoryResponse{
 				Season: stats.Season,
 
-				BaseScore: base,
+				BaseScore: analyticsResult.BaseScore,
 
-				NormalizedScore: normalized,
+				NormalizedScore: analyticsResult.NormalizedScore,
 
-				ContextScore: context,
+				ContextScore: analyticsResult.ContextScore,
 
-				OverallScore: overall,
+				OverallScore: analyticsResult.Overall,
 			},
 		)
 	}

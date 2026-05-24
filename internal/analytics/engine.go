@@ -23,11 +23,17 @@ func CalculateAllModels(
 	ctxScore := ContextModel(stats, position)
 
 	return AnalyticsResult{
-		BaseScore:       BaseStatModel(stats),
-		NormalizedScore: normScore,
-		ContextScore:    ctxScore,
-		// Передаем сырые баллы игрока и глобальные параметры распределения сезона
-		Overall: CalculateOverallScore(normScore, normDist, ctxScore, contextDist),
+		BaseScore:       Round1(BaseStatModel(stats)),
+		NormalizedScore: Round1(normScore),
+		ContextScore:    Round1(ctxScore),
+		// Передаем сырые баллы игрока, глобальные параметры распределения сезона и доверие к выборке
+		Overall: CalculateOverallScoreWithConfidence(
+			normScore,
+			normDist,
+			ctxScore,
+			contextDist,
+			ConfidenceFactor(stats.GamesPlayed),
+		),
 	}
 }
 

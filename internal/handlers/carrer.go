@@ -20,11 +20,19 @@ type CareerSeasonResponse struct {
 	Assists     int `json:"assists"`
 	Points      int `json:"points"`
 
-	OverallScore float64 `json:"overall_score"`
-	Archetype    string  `json:"archetype"`
+	BaseScore         float64 `json:"base_score"`
+	NormalizedScore   float64 `json:"normalized_score"`
+	ContextScore      float64 `json:"context_score"`
+	OverallScore      float64 `json:"overall_score"`
+	OverallPercentile float64 `json:"overall_percentile"`
+	Archetype         string  `json:"archetype"`
 }
 
 type CareerResponse struct {
+	PlayerID uint `json:"player_id"`
+
+	NHLID int `json:"nhl_id"`
+
 	Player string `json:"player"`
 
 	Position string `json:"position"`
@@ -32,14 +40,6 @@ type CareerResponse struct {
 	Career []CareerSeasonResponse `json:"career"`
 }
 
-// GetPlayerCareer godoc
-// @Summary Карьера игрока
-// @Description Возвращает историю сезонов игрока
-// @Tags Игроки
-// @Produce json
-// @Param id path int true "Player ID"
-// @Success 200 {object} CareerResponse
-// @Router /players/{id}/career [get]
 func GetPlayerCareer(c *gin.Context) {
 
 	id := c.Param("id")
@@ -67,12 +67,31 @@ func GetPlayerCareer(c *gin.Context) {
 
 	for _, stats := range player.Stats {
 
-		overall := analytics.CalculateOverallScore(
-			analytics.NormalizedModel(stats),
-			analytics.CalculateDistribution([]float64{analytics.NormalizedModel(stats)}),
-			analytics.ContextModel(stats, player.Position),
-			analytics.CalculateDistribution([]float64{analytics.ContextModel(stats, player.Position)}),
-		)
+		seasonAnalytics,
+			err :=
+			analyticsEngine.GetSeasonAnalytics(
+				c.Request.Context(),
+				stats.Season,
+			)
+
+		if err != nil {
+			continue
+		}
+
+		result,
+			ok :=
+			seasonAnalytics[player.ID]
+
+		if !ok {
+			continue
+		}
+
+		allOverallScores := make([]float64, 0, len(seasonAnalytics))
+		for _, analyticsResult := range seasonAnalytics {
+			allOverallScores = append(allOverallScores, analyticsResult.Overall)
+		}
+
+		percentile := analytics.CalculatePercentile(result.Overall, allOverallScores)
 
 		archetype :=
 			analytics.DetectArchetype(
@@ -80,21 +99,35 @@ func GetPlayerCareer(c *gin.Context) {
 				player.Position,
 			)
 
-		seasons = append(
-			seasons,
-			CareerSeasonResponse{
-				Season:      stats.Season,
-				Team:        stats.Team,
-				GamesPlayed: stats.GamesPlayed,
+		seasons =
+			append(
+				seasons,
+				CareerSeasonResponse{
+					Season: stats.Season,
 
-				Goals:   stats.Goals,
-				Assists: stats.Assists,
-				Points:  stats.Points,
+					Team: stats.Team,
 
-				OverallScore: overall,
-				Archetype:    archetype,
-			},
-		)
+					GamesPlayed: stats.GamesPlayed,
+
+					Goals: stats.Goals,
+
+					Assists: stats.Assists,
+
+					Points: stats.Points,
+
+					BaseScore: result.BaseScore,
+
+					NormalizedScore: result.NormalizedScore,
+
+					ContextScore: result.ContextScore,
+
+					OverallScore: result.Overall,
+
+					OverallPercentile: percentile,
+
+					Archetype: archetype,
+				},
+			)
 	}
 
 	sort.Slice(
@@ -113,6 +146,10 @@ func GetPlayerCareer(c *gin.Context) {
 	c.JSON(
 		http.StatusOK,
 		CareerResponse{
+			PlayerID: player.ID,
+
+			NHLID: player.NHLID,
+
 			Player: player.Name,
 
 			Position: player.Position,

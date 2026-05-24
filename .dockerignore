@@ -1,0 +1,9 @@
+.git
+.gitignore
+Dockerfile
+docker-compose.yml
+*.zip
+csv
+node_modules
+tmp
+.DS_Store

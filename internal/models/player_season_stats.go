@@ -5,11 +5,11 @@ import "gorm.io/gorm"
 type PlayerSeasonStats struct {
 	gorm.Model
 
-	PlayerID uint
+	PlayerID uint `gorm:"index;uniqueIndex:idx_player_season"`
 	Player   Player
 
-	Season string
-	Team   string
+	Season string `gorm:"index;uniqueIndex:idx_player_season"`
+	Team   string `gorm:"index"`
 
 	GamesPlayed int
 

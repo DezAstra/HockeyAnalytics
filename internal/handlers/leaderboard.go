@@ -8,212 +8,244 @@ import (
 	"hockeyAnalytics/internal/analytics"
 	"hockeyAnalytics/internal/database"
 	"hockeyAnalytics/internal/models"
+	"hockeyAnalytics/internal/services"
+	"hockeyAnalytics/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
-type LeaderboardResponse struct {
-	Player   string `json:"player"`
-	Team     string `json:"team"`
-	Position string `json:"position"`
-	Season   string `json:"season"`
+type LeaderboardPlayerResponse struct {
+	PlayerID uint `json:"player_id"`
 
-	Value float64 `json:"value"`
+	Player string `json:"player"`
+
+	Team string `json:"team"`
+
+	Position string `json:"position"`
+
+	Season string `json:"season"`
+
+	BaseScore float64 `json:"base_score"`
+
+	NormalizedScore float64 `json:"normalized_score"`
+
+	ContextScore float64 `json:"context_score"`
+
+	OverallScore float64 `json:"overall_score"`
+
+	OverallPercentile float64 `json:"overall_percentile"`
+
+	Archetype string `json:"archetype"`
 }
 
 // GetLeaderboard godoc
-// @Summary Таблица лидеров
-// @Description Возвращает список лучших игроков по выбранному показателю
+// @Summary Лидерборд игроков
+// @Description Возвращает топ игроков по общей аналитической оценке
 // @Tags Аналитика
 // @Produce json
-//
-// @Param stat path string true "Статистические показатели"
-// @Param season query string false "Сезон"
-// @Param position query string false "Позиция игрока"
-// @Param team query string false "Команда"
-// @Param limit query int false "Количество игроков"
-// @Param min_gp query int false "Минимум сыгранных матчей"
-// @Param order query string false "Сортировка asc/desc"
-//
-// @Success 200 {array} LeaderboardResponse
-//
+// @Param season query string true "Сезон"
+// @Param limit query int false "Лимит"
+// @Success 200 {array} LeaderboardPlayerResponse
 // @Failure 400 {object} map[string]interface{}
-//
-// @Router /analytics/leaders/{stat} [get]
+// @Router /analytics/leaderboard [get]
 func GetLeaderboard(c *gin.Context) {
 
-	stat := c.Param("stat")
-	season := c.Query("season")
-	position := c.Query("position")
-	team := c.Query("team")
-	order := c.DefaultQuery("order", "desc")
-	limitQuery := c.DefaultQuery("limit", "20")
-	minGPQuery := c.DefaultQuery("min_gp", "0")
-	limit, _ := strconv.Atoi(limitQuery)
-	minGP, _ := strconv.Atoi(minGPQuery)
+	season :=
+		c.Query("season")
 
-	var players []models.Player
+	if season == "" {
 
-	query :=
-		database.DB.
-			Preload("Stats")
-
-	// фильтр по позиции
-
-	if position != "" {
-
-		query = query.Where(
-			"position = ?",
-			position,
+		c.JSON(
+			http.StatusBadRequest,
+			gin.H{
+				"error": "season is required",
+			},
 		)
+
+		return
 	}
 
-	query.Find(&players)
+	limit := 10
 
-	var response []LeaderboardResponse
+	limitQuery :=
+		c.Query("limit")
 
-	for _, player := range players {
+	if limitQuery != "" {
 
-		for _, stats := range player.Stats {
+		parsedLimit, err :=
+			strconv.Atoi(
+				limitQuery,
+			)
 
-			// фильтр по сезону
+		if err == nil &&
+			parsedLimit > 0 {
 
-			if season != "" &&
-				stats.Season != season {
-				continue
-			}
+			limit =
+				parsedLimit
+		}
+	}
 
-			if team != "" &&
-				stats.Team != team {
-				continue
-			}
+	displaySeason, err :=
+		utils.ToDisplaySeason(
+			season,
+		)
 
-			// фильтр по мин. матчам
+	if err != nil {
 
-			if stats.GamesPlayed < minGP {
-				continue
-			}
+		c.JSON(
+			http.StatusBadRequest,
+			gin.H{
+				"error": err.Error(),
+			},
+		)
 
-			value := 0.0
+		return
+	}
 
-			switch stat {
+	err =
+		services.SyncSeasonIfMissing(
+			displaySeason,
+		)
 
-			// простая статистика
+	if err != nil {
 
-			case "goals":
-				value =
-					float64(stats.Goals)
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{
+				"error": err.Error(),
+			},
+		)
 
-			case "assists":
-				value =
-					float64(stats.Assists)
+		return
+	}
 
-			case "shots":
-				value =
-					float64(stats.Shots)
+	seasonAnalytics, err :=
+		analyticsEngine.GetSeasonAnalytics(
+			c.Request.Context(),
+			displaySeason,
+		)
 
-			case "blocks":
-				value =
-					float64(stats.BlockedShots)
+	if err != nil {
 
-			case "hits":
-				value =
-					float64(stats.Hits)
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{
+				"error": err.Error(),
+			},
+		)
 
-			case "pim":
-				value =
-					float64(stats.PenaltyMinutes)
+		return
+	}
 
-			case "plusminus":
-				value =
-					float64(stats.PlusMinus)
+	var stats []models.PlayerSeasonStats
 
-			// продвинутые статы
+	err =
+		database.DB.
+			Preload("Player").
+			Where(
+				"season = ?",
+				displaySeason,
+			).
+			Find(&stats).
+			Error
 
-			case "faceoff_percent":
-				total :=
-					stats.FaceoffsWon +
-						stats.FaceoffsLost
+	if err != nil {
 
-				if total < 100 {
-					continue
-				}
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{
+				"error": err.Error(),
+			},
+		)
 
-				value =
-					analytics.CalculateFaceoffPercent(
-						stats.FaceoffsWon,
-						stats.FaceoffsLost,
-					)
+		return
+	}
 
-			case "normalized":
-				value =
-					analytics.NormalizedModel(
-						stats,
-					)
+	allOverallScores :=
+		make(
+			[]float64,
+			0,
+			len(seasonAnalytics),
+		)
 
-			case "context":
-				value =
-					analytics.ContextModel(
-						stats,
-						player.Position,
-					)
+	for _, result := range seasonAnalytics {
 
-			case "overall":
-				normalized :=
-					analytics.NormalizedModel(stats)
+		allOverallScores =
+			append(
+				allOverallScores,
+				result.Overall,
+			)
+	}
 
-				context :=
-					analytics.ContextModel(
-						stats,
-						player.Position,
-					)
+	var response []LeaderboardPlayerResponse
 
-				value =
-					normalized*0.3 +
-						context*0.4
+	for _, item := range stats {
 
-			default:
+		result, ok :=
+			seasonAnalytics[item.Player.ID]
 
-				c.JSON(
-					http.StatusBadRequest,
-					gin.H{
-						"error": "invalid stat",
-					},
-				)
+		if !ok {
+			continue
+		}
 
-				return
-			}
+		archetype :=
+			analytics.DetectArchetype(
+				item,
+				item.Player.Position,
+			)
 
-			response = append(
+		percentile :=
+			analytics.CalculatePercentile(
+				result.Overall,
+				allOverallScores,
+			)
+
+		response =
+			append(
 				response,
-				LeaderboardResponse{
-					Player:   player.Name,
-					Team:     stats.Team,
-					Position: player.Position,
-					Season:   stats.Season,
-					Value:    value,
+				LeaderboardPlayerResponse{
+					PlayerID: item.Player.ID,
+
+					Player: item.Player.Name,
+
+					Team: item.Team,
+
+					Position: item.Player.Position,
+
+					Season: item.Season,
+
+					BaseScore: result.BaseScore,
+
+					NormalizedScore: result.NormalizedScore,
+
+					ContextScore: result.ContextScore,
+
+					OverallScore: result.Overall,
+
+					OverallPercentile: percentile,
+
+					Archetype: archetype,
 				},
 			)
-		}
 	}
 
 	sort.Slice(
 		response,
 		func(i, j int) bool {
 
-			if order == "asc" {
-				return response[i].Value <
-					response[j].Value
-			}
-
-			return response[i].Value >
-				response[j].Value
+			return response[i].OverallScore >
+				response[j].OverallScore
 		},
 	)
 
-	if limit < len(response) {
-		response = response[:limit]
+	if len(response) > limit {
+
+		response =
+			response[:limit]
 	}
 
-	c.JSON(http.StatusOK, response)
+	c.JSON(
+		http.StatusOK,
+		response,
+	)
 }

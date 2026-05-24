@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"hockeyAnalytics/internal/services"
+	"hockeyAnalytics/internal/utils"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -17,9 +18,21 @@ func GetNHLSeasonStats(
 			"20232024",
 		)
 
+	apiSeason, err := utils.ToAPISeason(season)
+	if err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			gin.H{
+				"error": err.Error(),
+			},
+		)
+
+		return
+	}
+
 	data, err :=
 		services.FetchSeasonSummary(
-			season,
+			apiSeason,
 		)
 
 	if err != nil {

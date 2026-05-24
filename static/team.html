@@ -1,82 +1,71 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-
     <meta charset="UTF-8">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Team</title>
-
-    <link
-        rel="stylesheet"
-        href="/static/styles.css"
-    >
-
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-
 <div class="container">
+    <header class="app-header">
+        <div><button class="back-button" onclick="history.back()">← Назад</button></div>
+        <nav class="nav">
+            <a class="nav-link" href="/">Лидерборд</a>
+            <a class="nav-link" href="/teams">Команды</a>
+            <a class="nav-link" href="/compare">Сравнение</a>
+            <a class="nav-link" href="/admin">Импорт</a>
+        </nav>
+    </header>
 
-    <button
-        class="back-button"
-        onclick="history.back()"
-    >
-        ← Back
-    </button>
-    
-    <div
-        id="teamHeader"
-        class="title"
-    ></div>
+    <section class="card">
+        <div id="teamHeader"></div>
+        <div class="toolbar" style="margin-top:18px">
+            <select id="seasonSelect"></select>
+            <button class="button" id="exportTeamCsv">Export CSV</button>
+        </div>
+        <div id="teamSummary" class="stat-grid"></div>
+        <div id="teamProfile"></div>
+    </section>
 
-    <div class="filters">
 
-        <select id="seasonSelect">
 
-            <option value="25/26">25/26</option>
-            <option value="24/25">24/25</option>
-            <option value="23/24">23/24</option>
-            <option value="22/23">22/23</option>
-            <option value="21/22">21/22</option>
-            <option value="20/21">20/21</option>
-            <option value="19/20">19/20</option>
-            <option value="18/19">18/19</option>
-            <option value="17/18">17/18</option>
-            <option value="16/17">16/17</option>
+    <section class="card">
+        <div class="toolbar">
+            <h2 class="card-title" style="margin-right:auto">История рейтинга команды</h2>
+            <button class="button button-secondary" id="exportTeamHistoryCsv">Export History CSV</button>
+        </div>
+        <div id="teamHistorySummary" class="stat-grid"></div>
+        <div class="chart-wrapper compact-chart">
+            <canvas id="teamHistoryChart"></canvas>
+        </div>
+        <div id="teamHistoryBreakdown"></div>
+    </section>
 
-        </select>
-
-    </div>
-
-    <div class="table-wrapper">
-
-        <table>
-
-            <thead>
-                <tr>
-
-                    <th>Игрок</th>
-
-                    <th>Позиция</th>
-
-                    <th data-sort="normalized_score">Normalized</th>
-                    <th data-sort="context_score">Context</th>
-                    <th data-sort="overall_score">Overall</th>
-
-                    <th>
-                        Архетип
-                    </th>
-
-                </tr>
-            </thead>
-
-            <tbody id="playersTable"></tbody>
-
-        </table>
-    </div>
-
+    <section class="card">
+        <h2 class="card-title">Игроки сезона</h2>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th data-sort="player">Игрок</th>
+                        <th data-sort="position">Позиция</th>
+                        <th data-sort="goals">Голы</th>
+                        <th data-sort="assists">Ассисты</th>
+                        <th data-sort="points">Очки</th>
+                        <th data-sort="normalized_score">Normalized</th>
+                        <th data-sort="context_score">Context</th>
+                        <th data-sort="overall_score">Overall</th>
+                        <th data-sort="archetype">Архетип</th>
+                    </tr>
+                </thead>
+                <tbody id="playersTable"></tbody>
+            </table>
+        </div>
+    </section>
 </div>
-
-<script src="/static/team.js"></script>
-
+<script src="/static/common.js?v=teamhistory1"></script>
+<script src="/static/team.js?v=teamhistory1"></script>
 </body>
 </html>

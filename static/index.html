@@ -2,104 +2,111 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hockey Analytics</title>
-
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-
 <div class="container">
+    <header class="app-header">
+        <div class="brand">
+            <div class="title">Hockey Analytics</div>
+            <div class="subtitle">Лидерборд, команды, сравнение и импорт статистики NHL</div>
+        </div>
+        <nav class="nav">
+            <a class="nav-link" href="/">Лидерборд</a>
+            <a class="nav-link" href="/teams">Команды</a>
+            <a class="nav-link" href="/compare">Сравнение</a>
+            <a class="nav-link" href="/admin">Импорт</a>
+            <a class="nav-link" href="/swagger/index.html">Swagger</a>
+        </nav>
+    </header>
 
-    <div class="title">
-        Hockey Analytics
-    </div>
+    <section class="card">
+        <div class="toolbar">
+            <input type="search" id="searchInput" placeholder="Искать игрока или команду...">
+            <select id="seasonSelect"></select>
+            <select id="positionFilter">
+                <option value="all">Все позиции</option>
+                <option value="C">Центральный нападающий</option>
+                <option value="L">Левый нападающий</option>
+                <option value="R">Правый нападающий</option>
+                <option value="D">Защитник</option>
+            </select>
+            <select id="teamFilter">
+                <option value="">Все команды</option>
+            </select>
+            <select id="archetypeFilter">
+                <option value="">Все архетипы</option>
+                <option value="Ассистент">Ассистент</option>
+                <option value="Снайпер">Снайпер</option>
+                <option value="Бомбардир">Бомбардир</option>
+                <option value="Защитник-стена">Защитник-стена</option>
+                <option value="Атакующий защитник">Атакующий защитник</option>
+                <option value="Нарушитель">Нарушитель</option>
+                <option value="Силовик">Силовик</option>
+                <option value="Специалист по вбрасываниям">Специалист по вбрасываниям</option>
+            </select>
+            <select id="minGamesFilter">
+                <option value="0">Любое число матчей</option>
+                <option value="10">Минимум 10 матчей</option>
+                <option value="20">Минимум 20 матчей</option>
+                <option value="40">Минимум 40 матчей</option>
+                <option value="60">Минимум 60 матчей</option>
+            </select>
+            <button class="button" id="resetFilters">Сбросить</button>
+            <button class="button" id="exportCsv">Export CSV</button>
+        </div>
 
-    <div class="subtitle">
-        Аналитическая платформа 
-    </div>
+        <div class="stats-strip" id="summaryCards"></div>
+    </section>
 
-    <div class="filters">
 
-    </div>
+    <section class="card metric-help-card">
+        <h2 class="card-title">Как читать оценки</h2>
+        <div class="grid-3 metric-help-grid">
+            <div>
+                <div class="stat-title">Normalized</div>
+                <p class="subtitle">Эффективность игрока, приведённая к единой сезонной базе. Помогает сравнивать игроков с разным числом матчей.</p>
+            </div>
+            <div>
+                <div class="stat-title">Context</div>
+                <p class="subtitle">Контекстная оценка роли: позиция, стиль вклада, защитные действия, силовая игра и специальные показатели позиции.</p>
+            </div>
+            <div>
+                <div class="stat-title">Overall</div>
+                <p class="subtitle">Итоговая оценка через z-score внутри сезона/позиционной группы. Для защитников приоритетнее Context, для крайних — Normalized.</p>
+            </div>
+        </div>
+    </section>
 
-    <div class="filters">
-
-        <input
-            type="text"
-            id="searchInput"
-            placeholder="Искать игрока..."
-        >
-
-        <select id="seasonSelect">
-            <option value="25/26">25/26</option>
-            <option value="24/25">24/25</option>
-            <option value="23/24">23/24</option>
-            <option value="22/23">22/23</option>
-            <option value="21/22">21/22</option>
-            <option value="20/21">20/21</option>
-            <option value="19/20">19/20</option>
-            <option value="18/19">18/19</option>
-            <option value="17/18">17/18</option>
-            <option value="16/17">16/17</option>
-        </select>
-
-        <select id="positionFilter">
-
-            <option value="">Позиции</option>
-
-            <option value="C">Центр</option>
-            <option value="L">Левый нап</option>
-            <option value="R">Правый нап</option>
-            <option value="D">Защитник</option>
-
-        </select>
-
-        <select id="teamFilter">
-            <option value=""></option>
-        </select>
-
-        <select id="archetypeFilter">
-
-            <option value="">Все архетипы</option>
-
-            <option value="Ассистент">Ассистент</option>
-            <option value="Снайпер">Снайпер</option>
-            <option value="Бомбардир">Бомбардир</option>
-            <option value="Защитник-стена">Защитник-стена</option>
-            <option value="Атакующий защитник">Атакующий защитник</option>
-            <option value="Нарушитель">Нарушитель</option>
-            <option value="Силовик">Силовик</option>
-            <option value="Специалист по вбрасываниям">Специалист по вбрасываниям</option>
-
-        </select>
-
-    </div>
-
-    <div class="table-wrapper">
-        <table>
-            <thead>
-                <tr>
-                    <th>Игрок</th>
-                    <th>Команда</th>
-                    <th>Позиция</th>
-
-                    <th data-sort="normalized_score">Normalized</th>
-                    <th data-sort="context_score">Context</th>
-                    <th data-sort="overall_score">Overall</th>
-
-                    <th data-sort="overall_percentile">Percentile</th>
-
-                    <th>Архетип</th>
-                </tr>
-            </thead>
-
-            <tbody id="playersTable"></tbody>
-        </table>
-    </div>
-
+    <section class="card">
+        <div class="toolbar">
+            <h2 class="card-title" style="margin-right:auto">Игроки сезона</h2>
+            <span id="resultCount" class="subtitle"></span>
+        </div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th data-sort="player">Игрок</th>
+                        <th data-sort="team">Команда</th>
+                        <th data-sort="position">Позиция</th>
+                        <th data-sort="games_played">GP</th>
+                        <th data-sort="points">Очки</th>
+                        <th data-sort="normalized_score">Normalized</th>
+                        <th data-sort="context_score">Context</th>
+                        <th data-sort="overall_score">Overall</th>
+                        <th data-sort="overall_percentile">Лучше %</th>
+                        <th data-sort="archetype">Архетип</th>
+                    </tr>
+                </thead>
+                <tbody id="playersTable"></tbody>
+            </table>
+        </div>
+    </section>
 </div>
-
-<script src="/static/app.js"></script>
-
+<script src="/static/common.js?v=features3"></script>
+<script src="/static/app.js?v=features3"></script>
 </body>
 </html>

@@ -1,58 +1,51 @@
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <title>Comparison</title>
-
-    <link
-        rel="stylesheet"
-        href="/static/styles.css"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сравнение игроков</title>
+    <link rel="stylesheet" href="/static/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 </head>
-
 <body>
-
 <div class="container">
-    
-    <button
-        class="back-button"
-        onclick="history.back()"
-    >
-        ← Back
-    </button>
-
-    <div class="card">
-
-        <select id="seasonSelect">
-
-        </select>
-
-    </div>
-
-    <div
-        id="comparisonCard"
-        class="card"
-    ></div>
-
-    <div class="card">
-
-        <div class="radar-wrapper">
-
-            <canvas id="comparisonChart"></canvas>
-
+    <header class="app-header">
+        <div class="brand">
+            <div class="title">Сравнение игроков</div>
+            <div class="subtitle">Выбери двух игроков и сезон</div>
         </div>
+        <nav class="nav">
+            <a class="nav-link" href="/">Лидерборд</a>
+            <a class="nav-link" href="/teams">Команды</a>
+            <a class="nav-link" href="/admin">Импорт</a>
+        </nav>
+    </header>
 
-    </div>
+    <section class="card">
+        <div class="toolbar">
+            <select id="seasonSelect"></select>
+            <div class="compare-search">
+                <input type="search" id="player1Input" placeholder="Первый игрок...">
+                <div id="player1Results"></div>
+            </div>
+            <div class="compare-search">
+                <input type="search" id="player2Input" placeholder="Второй игрок...">
+                <div id="player2Results"></div>
+            </div>
+            <button class="button button-primary" id="compareButton">Сравнить</button>
+        </div>
+    </section>
 
+    <section id="comparisonCard" class="card"></section>
+
+    <section class="card">
+        <h2 class="card-title">Радар сравнения</h2>
+        <div class="radar-wrapper">
+            <canvas id="comparisonChart"></canvas>
+        </div>
+    </section>
 </div>
-
-<script src="/static/comparison.js"></script>
-
+<script src="/static/common.js?v=features3"></script>
+<script src="/static/comparison.js?v=features3"></script>
 </body>
 </html>

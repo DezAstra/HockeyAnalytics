@@ -1,82 +1,85 @@
 package mappers
 
 import (
+	"fmt"
 	"strconv"
+	"strings"
 
 	"hockeyAnalytics/internal/models"
 	"hockeyAnalytics/internal/utils"
 )
 
-// func ExtractTeamName(
-// 	row []string,
-// ) string {
+const MinCSVColumns = 31
 
-// 	return row[4]
-// }
+func ExtractCSVPlayerName(row []string) string {
+	return strings.TrimSpace(
+		strings.Split(row[1], "\\")[0],
+	)
+}
 
-// func ExtractPlayerName(
-// 	row []string,
-// ) string {
+func atoi(value string) int {
+	parsed, _ := strconv.Atoi(strings.TrimSpace(value))
+	return parsed
+}
 
-// 	return strings.Split(
-// 		row[1],
-// 		"\\",
-// 	)[0]
-// }
+func parseOptionalFloat(value string) *float64 {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil
+	}
 
-// func ExtractPlayerPosition(
-// 	row []string,
-// ) string {
+	parsed, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		return nil
+	}
 
-// 	return row[3]
-// }
+	return &parsed
+}
 
 func MapCSVRowToStats(
 	row []string,
 	playerID uint,
-) models.PlayerSeasonStats {
+) (models.PlayerSeasonStats, error) {
 
-	seasonYear, _ :=
-		strconv.Atoi(row[30])
+	if len(row) < MinCSVColumns {
+		return models.PlayerSeasonStats{}, fmt.Errorf(
+			"csv row has %d columns, need at least %d",
+			len(row),
+			MinCSVColumns,
+		)
+	}
+
+	seasonYear, err :=
+		strconv.Atoi(strings.TrimSpace(row[30]))
+
+	if err != nil {
+		return models.PlayerSeasonStats{}, fmt.Errorf(
+			"invalid season year %q: %w",
+			row[30],
+			err,
+		)
+	}
 
 	season :=
 		utils.FormatSeason(
 			seasonYear,
 		)
-	gamesPlayed, _ := strconv.Atoi(row[5])
 
-	goals, _ := strconv.Atoi(row[6])
-	assists, _ := strconv.Atoi(row[7])
-	plusMinus, _ := strconv.Atoi(row[9])
-
-	penaltyMinutes, _ := strconv.Atoi(row[10])
-
-	evenStrengthGoals, _ := strconv.Atoi(row[12])
-	powerPlayGoals, _ := strconv.Atoi(row[13])
-	shortHandedGoals, _ := strconv.Atoi(row[14])
-
-	shots, _ := strconv.Atoi(row[19])
-	blockedShots, _ := strconv.Atoi(row[23])
-
-	hits, _ := strconv.Atoi(row[24])
-
-	faceoffsWon, _ := strconv.Atoi(row[25])
-	faceoffsLost, _ := strconv.Atoi(row[26])
-
-	var toi *float64
-
-	if row[21] != "" {
-
-		value, _ := strconv.ParseFloat(
-			row[21],
-			64,
-		)
-
-		toi = &value
-	}
+	gamesPlayed := atoi(row[5])
+	goals := atoi(row[6])
+	assists := atoi(row[7])
+	plusMinus := atoi(row[9])
+	penaltyMinutes := atoi(row[10])
+	evenStrengthGoals := atoi(row[12])
+	powerPlayGoals := atoi(row[13])
+	shortHandedGoals := atoi(row[14])
+	shots := atoi(row[19])
+	blockedShots := atoi(row[23])
+	hits := atoi(row[24])
+	faceoffsWon := atoi(row[25])
+	faceoffsLost := atoi(row[26])
 
 	var FoP float64
-
 	totalFaceoffs :=
 		faceoffsWon + faceoffsLost
 
@@ -92,9 +95,11 @@ func MapCSVRowToStats(
 		Season:      season,
 		GamesPlayed: gamesPlayed,
 
-		Goals:          goals,
-		Assists:        assists,
-		PlusMinus:      plusMinus,
+		Goals:     goals,
+		Assists:   assists,
+		Points:    goals + assists,
+		PlusMinus: plusMinus,
+
 		PenaltyMinutes: penaltyMinutes,
 
 		EvenStrengthGoals: evenStrengthGoals,
@@ -109,6 +114,6 @@ func MapCSVRowToStats(
 		FaceoffsLost:   faceoffsLost,
 		FaceoffPercent: &FoP,
 
-		TimeOfIce: toi,
-	}
+		TimeOfIce: parseOptionalFloat(row[21]),
+	}, nil
 }

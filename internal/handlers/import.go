@@ -1,22 +1,29 @@
 package handlers
 
 import (
-	"hockeyAnalytics/internal/database"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+
 	"hockeyAnalytics/internal/mappers"
 	"hockeyAnalytics/internal/models"
 	"hockeyAnalytics/internal/services"
-	"net/http"
-	"os"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
 const (
-	csvPlayerIdx   = 1
 	csvPositionIdx = 3
 	csvTeamIdx     = 4
 )
+
+type CSVImportResponse struct {
+	Message  string   `json:"message"`
+	Imported int      `json:"imported"`
+	Skipped  int      `json:"skipped"`
+	Errors   []string `json:"errors"`
+}
 
 // ImportCSV godoc
 // @Summary импорт csv
@@ -25,104 +32,106 @@ const (
 // @Accept multipart/form-data
 // @Produce json
 // @Param file formData file true "CSV File"
-// @Success 200 {object} map[string]interface{}
+// @Success 200 {object} CSVImportResponse
 // @Failure 400 {object} map[string]interface{}
 // @Router /import/csv [post]
 func ImportCSV(c *gin.Context) {
-
 	file, err := c.FormFile("file")
-
 	if err != nil {
-
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "ошибка загрузки csv файла",
-		})
-
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ошибка загрузки csv файла"})
 		return
 	}
 
-	tempFilePath := "./csv/" + file.Filename
-
-	err = c.SaveUploadedFile(file, tempFilePath)
-
-	if err != nil {
-
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "ошибка сохранения csv файла",
-		})
-
+	if err := os.MkdirAll("./csv", 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка подготовки папки csv"})
 		return
 	}
 
-	f, err := os.Open(tempFilePath)
-
-	if err != nil {
-
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "ошибка открытия csv файла",
-		})
-
+	tempFilePath := filepath.Join("./csv", filepath.Base(file.Filename))
+	if err := c.SaveUploadedFile(file, tempFilePath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка сохранения csv файла"})
 		return
 	}
-
-	defer f.Close()
 
 	rows, err := services.ReadCSV(tempFilePath)
-
 	if err != nil {
-
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "ошибка чтения csv файла",
-		})
-
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка чтения csv файла"})
 		return
 	}
 
-	for index, row := range rows {
+	imported := 0
+	skipped := 0
+	errorsList := make([]string, 0)
 
+	for index, row := range rows {
 		if index == 0 {
 			continue
 		}
 
-		if len(row) <= csvTeamIdx {
+		if len(row) < mappers.MinCSVColumns {
+			skipped++
+			errorsList = append(errorsList, "row skipped: not enough columns")
 			continue
 		}
 
-		teamName := row[csvTeamIdx]
-		playerName := strings.Split(row[csvPlayerIdx], "\\")[0]
-		position := row[csvPositionIdx]
+		teamName := strings.TrimSpace(row[csvTeamIdx])
+		playerName := mappers.ExtractCSVPlayerName(row)
+		position := strings.TrimSpace(row[csvPositionIdx])
 
-		var player models.Player
-
-		database.DB.
-			Where(
-				"LOWER(name) = LOWER(?)",
-				playerName,
-			).
-			First(&player)
-
-		if player.ID == 0 {
-
-			player = models.Player{
-				Name:     playerName,
-				Position: position,
-			}
-
-			database.DB.Create(&player)
+		if playerName == "" {
+			skipped++
+			continue
 		}
 
-		stats :=
-			mappers.MapCSVRowToStats(
-				row,
-				player.ID,
-			)
+		player, err := services.UpsertPlayer(models.Player{
+			Name:     playerName,
+			Position: position,
+		})
+		if err != nil {
+			skipped++
+			errorsList = append(errorsList, err.Error())
+			continue
+		}
+
+		stats, err := mappers.MapCSVRowToStats(row, player.ID)
+		if err != nil {
+			skipped++
+			errorsList = append(errorsList, err.Error())
+			continue
+		}
 
 		stats.Team = teamName
 
-		services.SaveSeasonStats(stats)
+		if err := services.SaveSeasonStats(stats); err != nil {
+			skipped++
+			errorsList = append(errorsList, err.Error())
+			continue
+		}
+
+		imported++
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "csv файл импортирован",
+	analyticsEngine.ClearCache()
+
+	status := "success"
+	if len(errorsList) > 0 {
+		status = "warning"
+	}
+
+	_ = services.CreateImportLog(services.ImportLogInput{
+		Source:   "CSV",
+		Season:   "",
+		Status:   status,
+		Message:  "csv файл импортирован",
+		Imported: imported,
+		Skipped:  skipped,
+		Errors:   errorsList,
+	})
+
+	c.JSON(http.StatusOK, CSVImportResponse{
+		Message:  "csv файл импортирован",
+		Imported: imported,
+		Skipped:  skipped,
+		Errors:   errorsList,
 	})
 }

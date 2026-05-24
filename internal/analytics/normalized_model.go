@@ -2,27 +2,23 @@ package analytics
 
 import "hockeyAnalytics/internal/models"
 
-func NormalizedModel(
-	stats models.PlayerSeasonStats,
-) float64 {
+// NormalizedModel приводит базовую оценку к условному 82-матчевому сезону.
+// Для маленькой выборки используется сглаживание к среднему значению, чтобы игроки с 2-5 матчами
+// не взлетали в лидерборде из-за случайного темпа.
+func NormalizedModel(stats models.PlayerSeasonStats) float64 {
+	if stats.GamesPlayed <= 0 {
+		return 0
+	}
 
+	cfg := DefaultConfig
 	base := BaseStatModel(stats)
-	M_minutes := 200.0
-	M_games := 15.0
-	AvgBasePerMinute := 0.03
-	AvgBasePerGame := 0.7
+	games := float64(stats.GamesPlayed)
+	basePerGame := base / games
 
-	if stats.TimeOfIce != nil &&
-		*stats.TimeOfIce > 0 {
+	smoothedPerGame :=
+		((basePerGame * games) +
+			(cfg.NormalizedAvgBasePerGame * cfg.NormalizedSampleGames)) /
+			(games + cfg.NormalizedSampleGames)
 
-		// Формула: (Base + (AvgPerMin * M)) / (TOI + M) * 1000
-		return (base + (AvgBasePerMinute*M_minutes)/(*stats.TimeOfIce+M_minutes))
-	}
-
-	if stats.GamesPlayed > 0 {
-
-		return (base + (AvgBasePerGame*M_games)/(float64(stats.GamesPlayed)+M_games))
-	}
-
-	return 0
+	return smoothedPerGame * cfg.NormalizedSeasonGames
 }

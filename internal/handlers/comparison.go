@@ -7,27 +7,41 @@ import (
 	"hockeyAnalytics/internal/analytics"
 	"hockeyAnalytics/internal/database"
 	"hockeyAnalytics/internal/models"
+	"hockeyAnalytics/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
 type PlayerComparisonData struct {
-	Player   string `json:"player"`
-	Team     string `json:"team"`
+	PlayerID uint `json:"player_id"`
+
+	NHLID int `json:"nhl_id"`
+
+	Player string `json:"player"`
+
+	Team string `json:"team"`
+
 	Position string `json:"position"`
-	Season   string `json:"season"`
 
-	Goals   int `json:"goals"`
+	Season string `json:"season"`
+
+	Goals int `json:"goals"`
+
 	Assists int `json:"assists"`
-	Points  int `json:"points"`
 
-	Hits   int `json:"hits"`
+	Points int `json:"points"`
+
+	Hits int `json:"hits"`
+
 	Blocks int `json:"blocks"`
 
-	BaseScore       float64 `json:"base_score"`
+	BaseScore float64 `json:"base_score"`
+
 	NormalizedScore float64 `json:"normalized_score"`
-	ContextScore    float64 `json:"context_score"`
-	OverallScore    float64 `json:"overall_score"`
+
+	ContextScore float64 `json:"context_score"`
+
+	OverallScore float64 `json:"overall_score"`
 }
 
 type ComparisonResponse struct {
@@ -39,13 +53,18 @@ type ComparisonResponse struct {
 func buildComparisonData(
 	player models.Player,
 	stats models.PlayerSeasonStats,
+	overall float64,
 ) PlayerComparisonData {
 
 	base :=
-		analytics.BaseStatModel(stats)
+		analytics.BaseStatModel(
+			stats,
+		)
 
 	normalized :=
-		analytics.NormalizedModel(stats)
+		analytics.NormalizedModel(
+			stats,
+		)
 
 	context :=
 		analytics.ContextModel(
@@ -53,14 +72,11 @@ func buildComparisonData(
 			player.Position,
 		)
 
-	overall := analytics.CalculateOverallScore(
-		normalized,
-		analytics.CalculateDistribution([]float64{normalized}),
-		context,
-		analytics.CalculateDistribution([]float64{context}),
-	)
-
 	return PlayerComparisonData{
+		PlayerID: player.ID,
+
+		NHLID: player.NHLID,
+
 		Player: player.Name,
 
 		Team: stats.Team,
@@ -73,7 +89,7 @@ func buildComparisonData(
 
 		Assists: stats.Assists,
 
-		Points: stats.Goals + stats.Assists,
+		Points: stats.Points,
 
 		Hits: stats.Hits,
 
@@ -115,11 +131,24 @@ func ComparePlayers(c *gin.Context) {
 	season :=
 		c.Query("season")
 
+	if season != "" {
+		displaySeason, err := utils.ToDisplaySeason(season)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		season = displaySeason
+	}
+
 	player1ID, err1 :=
-		strconv.Atoi(player1Query)
+		strconv.Atoi(
+			player1Query,
+		)
 
 	player2ID, err2 :=
-		strconv.Atoi(player2Query)
+		strconv.Atoi(
+			player2Query,
+		)
 
 	if err1 != nil ||
 		err2 != nil {
@@ -137,34 +166,111 @@ func ComparePlayers(c *gin.Context) {
 	var player1 models.Player
 	var player2 models.Player
 
-	database.DB.
-		Preload("Stats").
-		First(&player1, player1ID)
+	err :=
+		database.DB.
+			Preload("Stats").
+			First(
+				&player1,
+				player1ID,
+			).
+			Error
 
-	database.DB.
-		Preload("Stats").
-		First(&player2, player2ID)
+	if err != nil {
+
+		c.JSON(
+			http.StatusNotFound,
+			gin.H{
+				"error": "player1 not found",
+			},
+		)
+
+		return
+	}
+
+	err =
+		database.DB.
+			Preload("Stats").
+			First(
+				&player2,
+				player2ID,
+			).
+			Error
+
+	if err != nil {
+
+		c.JSON(
+			http.StatusNotFound,
+			gin.H{
+				"error": "player2 not found",
+			},
+		)
+
+		return
+	}
+
+	if len(player1.Stats) == 0 ||
+		len(player2.Stats) == 0 {
+
+		c.JSON(
+			http.StatusNotFound,
+			gin.H{
+				"error": "player stats not found",
+			},
+		)
+
+		return
+	}
 
 	var player1Stats models.PlayerSeasonStats
 	var player2Stats models.PlayerSeasonStats
 
-	// latest season fallback
-
 	if season == "" {
 
 		player1Stats =
-			player1.Stats[len(player1.Stats)-1]
+			player1.Stats[0]
 
 		player2Stats =
-			player2.Stats[len(player2.Stats)-1]
+			player2.Stats[0]
+
+		for _, stats := range player1.Stats {
+
+			if seasonValue(stats.Season) >
+				seasonValue(
+					player1Stats.Season,
+				) {
+
+				player1Stats =
+					stats
+			}
+		}
+
+		for _, stats := range player2.Stats {
+
+			if seasonValue(stats.Season) >
+				seasonValue(
+					player2Stats.Season,
+				) {
+
+				player2Stats =
+					stats
+			}
+		}
 
 	} else {
+
+		player1Found := false
+
+		player2Found := false
 
 		for _, stats := range player1.Stats {
 
 			if stats.Season == season {
 
-				player1Stats = stats
+				player1Stats =
+					stats
+
+				player1Found =
+					true
 			}
 		}
 
@@ -172,22 +278,81 @@ func ComparePlayers(c *gin.Context) {
 
 			if stats.Season == season {
 
-				player2Stats = stats
+				player2Stats =
+					stats
+
+				player2Found =
+					true
 			}
+		}
+
+		if !player1Found ||
+			!player2Found {
+
+			c.JSON(
+				http.StatusNotFound,
+				gin.H{
+					"error": "one of players has no stats for selected season",
+				},
+			)
+
+			return
 		}
 	}
 
-	response := ComparisonResponse{
-		Player1: buildComparisonData(
-			player1,
-			player1Stats,
-		),
+	seasonAnalytics, err :=
+		analyticsEngine.GetSeasonAnalytics(
+			c.Request.Context(),
+			player1Stats.Season,
+		)
 
-		Player2: buildComparisonData(
-			player2,
-			player2Stats,
-		),
+	if err != nil {
+
+		c.JSON(
+			http.StatusInternalServerError,
+			gin.H{
+				"error": err.Error(),
+			},
+		)
+
+		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	player1Overall := 0.0
+
+	player2Overall := 0.0
+
+	if result, ok :=
+		seasonAnalytics[player1.ID]; ok {
+
+		player1Overall =
+			result.Overall
+	}
+
+	if result, ok :=
+		seasonAnalytics[player2.ID]; ok {
+
+		player2Overall =
+			result.Overall
+	}
+
+	response :=
+		ComparisonResponse{
+			Player1: buildComparisonData(
+				player1,
+				player1Stats,
+				player1Overall,
+			),
+
+			Player2: buildComparisonData(
+				player2,
+				player2Stats,
+				player2Overall,
+			),
+		}
+
+	c.JSON(
+		http.StatusOK,
+		response,
+	)
 }

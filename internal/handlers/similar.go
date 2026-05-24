@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"math"
 	"net/http"
 	"sort"
 	"strconv"
@@ -9,6 +8,7 @@ import (
 	"hockeyAnalytics/internal/analytics"
 	"hockeyAnalytics/internal/database"
 	"hockeyAnalytics/internal/models"
+	"hockeyAnalytics/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,6 +17,7 @@ import (
 type SimilarPlayerResponse struct {
 	Player       string  `json:"player"`
 	PlayerID     uint    `json:"player_id"`
+	NHLID        int     `json:"nhl_id"`
 	Team         string  `json:"team"`
 	Position     string  `json:"position"`
 	Similarity   float64 `json:"similarity"`
@@ -28,18 +29,6 @@ type SimilarPlayerResponse struct {
 // (В идеале передавать его через DI структуру хэндлера, но для быстрой интеграции можно инициализировать так).
 var analyticsEngine = analytics.NewAnalyticsEngine()
 
-// calculateDistance — считает математическое расстояние между игроками с учетом разницы в статах и overall
-func calculateDistance(a models.PlayerSeasonStats, b models.PlayerSeasonStats, overallA, overallB float64) float64 {
-	diffGoals := math.Abs(float64(a.Goals - b.Goals))
-	diffAssists := math.Abs(float64(a.Assists - b.Assists))
-	diffShots := math.Abs(float64(a.Shots - b.Shots))
-	diffHits := math.Abs(float64(a.Hits - b.Hits))
-	diffBlocks := math.Abs(float64(a.BlockedShots - b.BlockedShots))
-	diffOverall := math.Abs(overallA - overallB)
-
-	return (diffGoals*0.8 + diffAssists*0.7 + diffShots*0.2 + diffHits*0.15 + diffBlocks*0.15 + diffOverall*1.5) / 10
-}
-
 // GetSimilarPlayers возвращает список топ-10 похожих игроков с использованием пакетного расчета
 func GetSimilarPlayers(c *gin.Context) {
 	idParam := c.Param("id")
@@ -49,6 +38,14 @@ func GetSimilarPlayers(c *gin.Context) {
 		return
 	}
 	season := c.Query("season")
+	if season != "" {
+		displaySeason, err := utils.ToDisplaySeason(season)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		season = displaySeason
+	}
 
 	// 1. Находим целевого игрока
 	var target models.Player
@@ -124,9 +121,16 @@ func GetSimilarPlayers(c *gin.Context) {
 			continue // Пропускаем игрока, если он не прошел фильтры пакетного расчета (например, сыграл < 5 матчей)
 		}
 
-		// Считаем дистанцию, передавая честные Overall-баллы, рассчитанные через Z-score
-		distance := calculateDistance(targetStats, stats, targetResult.Overall, playerResult.Overall)
-		similarity := math.Max(0, 100-distance)
+		distance := analytics.SimilarityDistance(analytics.SimilarityInput{
+			Stats:    targetStats,
+			Position: target.Position,
+			Overall:  targetResult.Overall,
+		}, analytics.SimilarityInput{
+			Stats:    stats,
+			Position: stats.Player.Position,
+			Overall:  playerResult.Overall,
+		})
+		similarity := analytics.SimilarityPercent(distance)
 
 		// Определение динамического архетипа
 		archetype := analytics.DetectArchetype(stats, stats.Player.Position)
@@ -134,9 +138,10 @@ func GetSimilarPlayers(c *gin.Context) {
 		results = append(results, SimilarPlayerResponse{
 			Player:       stats.Player.Name,
 			PlayerID:     stats.Player.ID,
+			NHLID:        stats.Player.NHLID,
 			Team:         stats.Team,
 			Position:     stats.Player.Position,
-			Similarity:   math.Round(similarity*100) / 100,
+			Similarity:   similarity,
 			OverallScore: playerResult.Overall, // Значение уже округлено внутри calculate_batch.go
 			Archetype:    archetype,
 		})

@@ -37,9 +37,18 @@ func main() {
 		c.File("./static/compare.html")
 	})
 
+	router.GET("/admin", func(c *gin.Context) {
+		c.File("./static/admin.html")
+	})
+
+	router.GET("/teams", func(c *gin.Context) {
+		c.File("./static/teams.html")
+	})
+
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	router.POST("/import/csv", handlers.ImportCSV)
+	router.GET("/import/logs", handlers.GetImportLogs)
 	router.POST("/nhl/sync", handlers.SyncNHLSeason)
 
 	router.GET("/nhl/stats", handlers.GetNHLSeasonStats)
@@ -61,7 +70,7 @@ func main() {
 	router.GET(
 		"/compare",
 		func(c *gin.Context) {
-			c.File("./static/comparison.html")
+			c.File("./static/compare.html")
 		},
 	)
 
@@ -76,6 +85,10 @@ func main() {
 		"/api/team/:team",
 		handlers.GetTeam,
 	)
+
+	router.GET("/api/team/:team/history", handlers.GetTeamHistory)
+
+	router.GET("/api/teams", handlers.GetTeams)
 
 	router.Run(":8080")
 }

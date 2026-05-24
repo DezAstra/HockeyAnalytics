@@ -2,70 +2,50 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Player</title>
-
     <link rel="stylesheet" href="/static/styles.css">
-
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-
 <div class="container">
-
-    <button
-        class="back-button"
-        onclick="history.back()"
-    >
-        ← Back
-    </button>
-
-    <div
-        id="playerCard"
-        class="card"
-    >
-    </div>
-
-            <div class="season-selector-container">
-            <label for="seasonSelect">Сезон аналитики:</label>
-            <select id="seasonSelect" class="dark-dropdown">
-            </select>
+    <header class="app-header">
+        <div>
+            <button class="back-button" onclick="history.back()">← Назад</button>
         </div>
+        <nav class="nav">
+            <a class="nav-link" href="/">Лидерборд</a>
+            <a class="nav-link" href="/compare">Сравнение</a>
+            <a class="nav-link" href="/admin">Импорт</a>
+        </nav>
+    </header>
 
-    <div
-        id="similarPlayers"
-        class="card"
-    ></div>
+    <section id="playerCard" class="card"></section>
 
-    <div class="card">
+    <section class="card">
+        <div class="toolbar">
+            <h2 class="card-title" style="margin-right:auto">Сезон и похожие игроки</h2>
+            <select id="seasonSelect"></select>
+        </div>
+        <div id="similarPlayers"></div>
+    </section>
 
-        <canvas id="careerChart"></canvas>
+    <section class="card">
+        <h2 class="card-title">График карьеры</h2>
+        <div class="chart-wrapper">
+            <canvas id="careerChart"></canvas>
+        </div>
+    </section>
 
-    </div>
-
-    <div class="card">
-
-        <h2>
-            Compare Player
-        </h2>
-
+    <section class="card">
+        <h2 class="card-title">Быстрое сравнение</h2>
         <div class="compare-search">
-
-            <input
-                type="text"
-                id="compareInput"
-                placeholder="Compare with player..."
-            >
-
+            <input type="search" id="compareInput" placeholder="Найти игрока для сравнения...">
             <div id="compareResults"></div>
-
         </div>
-
-    </div>
-
+    </section>
 </div>
-
-<script src="/static/player.js"></script>
-
+<script src="/static/common.js?v=features3"></script>
+<script src="/static/player.js?v=features3"></script>
 </body>
 </html>

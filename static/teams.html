@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Команды</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<div class="container">
+    <header class="app-header">
+        <div class="brand">
+            <div class="title">Команды</div>
+            <div class="subtitle">Сводка команд сезона по среднему overall, лидерам и архетипам</div>
+        </div>
+        <nav class="nav">
+            <a class="nav-link" href="/">Лидерборд</a>
+            <a class="nav-link" href="/compare">Сравнение</a>
+            <a class="nav-link" href="/admin">Импорт</a>
+        </nav>
+    </header>
+
+    <section class="card">
+        <div class="toolbar">
+            <select id="seasonSelect"></select>
+            <button class="button" id="exportTeamsCsv">Export CSV</button>
+        </div>
+        <div id="teamsGrid" class="teams-grid"></div>
+    </section>
+</div>
+<script src="/static/common.js?v=features3"></script>
+<script src="/static/teams.js?v=features3"></script>
+</body>
+</html>

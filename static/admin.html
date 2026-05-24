@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Импорт данных</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<div class="container">
+    <header class="app-header">
+        <div class="brand">
+            <div class="title">Импорт данных</div>
+            <div class="subtitle">CSV импорт, NHL sync и история операций</div>
+        </div>
+        <nav class="nav">
+            <a class="nav-link" href="/">Лидерборд</a>
+            <a class="nav-link" href="/teams">Команды</a>
+            <a class="nav-link" href="/compare">Сравнение</a>
+            <a class="nav-link" href="/swagger/index.html">Swagger</a>
+        </nav>
+    </header>
+
+    <div class="grid-2">
+        <section class="card">
+            <h2 class="card-title">CSV импорт</h2>
+            <p class="subtitle">Повторный импорт того же игрока и сезона обновляет строку, а не создаёт дубль.</p>
+            <form id="csvForm" class="form-row">
+                <input class="file-input" type="file" id="csvFile" accept=".csv" required>
+                <button class="button button-primary" type="submit">Импортировать CSV</button>
+            </form>
+        </section>
+
+        <section class="card">
+            <h2 class="card-title">NHL sync</h2>
+            <p class="subtitle">Можно вводить формат 21/22 или 20212022.</p>
+            <form id="syncForm" class="form-row">
+                <input type="text" id="syncSeason" placeholder="20212022" required>
+                <button class="button button-primary" type="submit">Синхронизировать</button>
+            </form>
+        </section>
+    </div>
+
+    <section class="card">
+        <h2 class="card-title">Результат</h2>
+        <div id="warningBox"></div>
+        <pre id="resultLog" class="log-output">Здесь появится ответ сервера.</pre>
+    </section>
+
+    <section class="card">
+        <div class="toolbar">
+            <h2 class="card-title" style="margin-right:auto">История импортов</h2>
+            <button class="button" id="refreshLogs">Обновить</button>
+        </div>
+        <div class="table-wrapper" style="max-height:420px">
+            <table>
+                <thead>
+                    <tr><th>Дата</th><th>Источник</th><th>Сезон</th><th>Статус</th><th>Добавлено</th><th>Обновлено</th><th>Пропущено</th><th>Ошибки</th></tr>
+                </thead>
+                <tbody id="importLogs"></tbody>
+            </table>
+        </div>
+    </section>
+</div>
+<script src="/static/common.js?v=features3"></script>
+<script src="/static/admin.js?v=features3"></script>
+</body>
+</html>
