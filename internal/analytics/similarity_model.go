@@ -21,7 +21,7 @@ func scaledAbsDiff(a float64, b float64, scale float64) float64 {
 }
 
 // SimilarityDistance считает расстояние между игроками по нормализованным признакам.
-// Используются per-82 значения, чтобы не сравнивать напрямую totals игроков с разным числом матчей.
+// Используются per-82 значения, чтобы не сравнивать напрямую игроков с разным числом матчей.
 func SimilarityDistance(a SimilarityInput, b SimilarityInput) float64 {
 	aStats := a.Stats
 	bStats := b.Stats

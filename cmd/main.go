@@ -62,13 +62,9 @@ func main() {
 	router.GET("/players/:id/career", handlers.GetPlayerCareer)
 	router.GET("/players/:id/similar", handlers.GetSimilarPlayers)
 
-	router.GET(
-		"/seasons",
-		handlers.GetSeasons,
-	)
+	router.GET("/seasons", handlers.GetSeasons)
 
-	router.GET(
-		"/compare",
+	router.GET("/compare",
 		func(c *gin.Context) {
 			c.File("./static/compare.html")
 		},
@@ -81,10 +77,7 @@ func main() {
 		},
 	)
 
-	router.GET(
-		"/api/team/:team",
-		handlers.GetTeam,
-	)
+	router.GET("/api/team/:team", handlers.GetTeam)
 
 	router.GET("/api/team/:team/history", handlers.GetTeamHistory)
 

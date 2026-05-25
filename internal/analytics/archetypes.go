@@ -31,7 +31,7 @@ func DetectArchetype(
 		return "Бомбардир"
 	}
 
-	if assists82 >= 55 && assists82-goals82 >= 25 {
+	if assists82 >= 55 && assists82-goals82 >= 30 {
 		return "Ассистент"
 	}
 

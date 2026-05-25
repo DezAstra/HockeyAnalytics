@@ -11,8 +11,7 @@ import (
 )
 
 // CalculateAllModels вычисляет все аналитические оценки для конкретного игрока.
-// В отличие от старой версии, теперь функция принимает предопределенные распределения всей лиги
-// (normDist и contextDist), что полностью решает проблему неверного расчета распределения на основе одного игрока.
+// функция принимает предопределенные распределения всей лиги для нормализации и контекстуальной оценки, а также количество игр для расчета доверия к выборке.
 func CalculateAllModels(
 	stats models.PlayerSeasonStats,
 	position string,
@@ -37,9 +36,7 @@ func CalculateAllModels(
 	}
 }
 
-// ============================================================================
-// Слой архитектурной оркестрации (Сервисный Движок Аналитики)
-// ============================================================================
+//Сервисный Движок Аналитики
 
 // Engine описывает интерфейс аналитического движка для удобного тестирования и DI
 type Engine interface {
@@ -71,7 +68,7 @@ func (e *AnalyticsEngine) GetSeasonAnalytics(ctx context.Context, season string)
 		return nil, errors.New("season parameter cannot be empty")
 	}
 
-	// 1. Проверяем кэш (используем RLock для безопасного параллельного чтения)
+	// Проверка кэша
 	e.cacheMutex.RLock()
 	cachedData, exists := e.cache[season]
 	lastUpd, hasTime := e.lastUpdate[season]
@@ -81,7 +78,7 @@ func (e *AnalyticsEngine) GetSeasonAnalytics(ctx context.Context, season string)
 		return cachedData, nil
 	}
 
-	// 2. Если кэша нет, запрашиваем статистику ВСЕХ игроков за этот сезон из ORM
+	// 2. Если кэша нет, запрашиваем статистику  игроков за этот сезон
 	var allSeasonStats []models.PlayerSeasonStats
 	err := database.DB.WithContext(ctx).
 		Preload("Player").
