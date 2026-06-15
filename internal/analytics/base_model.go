@@ -3,8 +3,7 @@ package analytics
 import "hockeyAnalytics/internal/models"
 
 // BaseStatModel оценивает базовый вклад игрока по сырым событиям сезона.
-// Важное отличие от прежней версии: голы не считаются дважды.
-// Goals — основной вклад, а EV/PP/SH goals используются только как маленькие модификаторы контекста гола.
+
 func BaseStatModel(stats models.PlayerSeasonStats) float64 {
 	cfg := DefaultConfig
 

@@ -3,8 +3,7 @@ package analytics
 import "hockeyAnalytics/internal/models"
 
 // ContextModel оценивает игрока с учетом роли и позиции.
-// Модель оставлена эвристической:
-// сначала считается универсальный вклад, затем позиция добавляет именно роль, а не полностью дублирует scoring.
+// сначала считается универсальный вклад, затем позиция добавляет именно роль.
 func ContextModel(
 	stats models.PlayerSeasonStats,
 	position string,
@@ -42,7 +41,7 @@ func ContextModel(
 
 	switch pos {
 	case "D":
-		// Для защитников усиливаем defensive involvement и playmaking,
+		// Для защитников усиливаем оборонительные действия и playmaking,
 		// но не заставляем их соревноваться с форвардами только голами.
 		score -= float64(stats.Goals) * 0.20
 		score += float64(stats.Assists) * 0.20
@@ -50,7 +49,7 @@ func ContextModel(
 		score += float64(stats.Hits) * 0.12
 
 	case "C":
-		// Для центров важны розыгрыш, двухсторонний вклад и вбрасывания.
+		// Для центров важны вбрасывания, двухсторонний вклад и вбрасывания.
 		score += float64(stats.Assists) * 0.20
 		score += float64(stats.BlockedShots) * 0.08
 
@@ -70,7 +69,6 @@ func ContextModel(
 
 	case "LW", "RW", "L", "R":
 		// Для крайних нападающих усиливаем бросковый и финишерский профиль,
-		// но только умеренно, чтобы не дублировать голы второй раз полностью.
 		score += float64(stats.Goals) * 0.25
 		score += float64(stats.Shots) * 0.05
 		score += float64(stats.Hits) * 0.08
